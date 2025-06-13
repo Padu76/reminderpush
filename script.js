@@ -97,3 +97,18 @@ window.onload = () => {
     loadReminders();
     setInterval(checkReminders, 30000); // ogni 30 secondi
 };
+
+function toggleTheme() {
+    document.body.classList.toggle("dark");
+    const current = document.body.classList.contains("dark") ? "dark" : "light";
+    localStorage.setItem("theme", current);
+}
+
+window.onload = () => {
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") {
+        document.body.classList.add("dark");
+    }
+    loadReminders();
+    setInterval(checkReminders, 30000);
+};
