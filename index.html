@@ -1,0 +1,29 @@
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>ReminderPush</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>ReminderPush</h1>
+    </header>
+    <main>
+        <section id="form">
+            <h2>Crea un Promemoria</h2>
+            <input type="text" id="title" placeholder="Titolo">
+            <textarea id="description" placeholder="Descrizione"></textarea>
+            <input type="datetime-local" id="deadline">
+            <input type="text" id="recipient" placeholder="Numero WhatsApp o Email">
+            <button onclick="sendReminder()">Invia Reminder</button>
+        </section>
+        <section id="history">
+            <h2>Cronologia</h2>
+            <ul id="reminderList"></ul>
+        </section>
+    </main>
+    <script src="script.js"></script>
+</body>
+</html>
