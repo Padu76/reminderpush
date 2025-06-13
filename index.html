@@ -3,28 +3,35 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>ReminderPush v0.3</title>
+    <title>ReminderPush v0.4</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
     <header>
-        <h1>ReminderPush</h1>
+        <h1>📌 ReminderPush</h1>
     </header>
     <main>
-        <section id="form">
+        <section class="card" id="form">
             <h2>Crea o Modifica un Promemoria</h2>
-            <input type="text" id="title" placeholder="Titolo">
-            <textarea id="description" placeholder="Descrizione"></textarea>
+            <label for="title">Titolo</label>
+            <input type="text" id="title" placeholder="Es. Invia report...">
+            <label for="description">Descrizione</label>
+            <textarea id="description" placeholder="Dettagli del promemoria..."></textarea>
+            <label for="deadline">Scadenza</label>
             <input type="datetime-local" id="deadline">
-            <textarea id="recipient" placeholder="Inserisci numeri WhatsApp ed email separati da virgole"></textarea>
-            <button onclick="sendReminder()">Invia / Salva</button>
+            <label for="recipient">Destinatari (WhatsApp o Email separati da virgole)</label>
+            <textarea id="recipient" placeholder="Es. 39333..., test@email.com"></textarea>
+            <button onclick="sendReminder()">➕ Salva / Invia</button>
         </section>
+
         <section id="filters">
-            <button onclick="setFilter('all')">Tutti</button>
-            <button onclick="setFilter('pending')">In sospeso</button>
-            <button onclick="setFilter('done')">Completati</button>
+            <button onclick="setFilter('all')">📋 Tutti</button>
+            <button onclick="setFilter('pending')">⏳ In sospeso</button>
+            <button onclick="setFilter('done')">✅ Completati</button>
         </section>
-        <section id="history">
+
+        <section class="card" id="history">
             <h2>Cronologia</h2>
             <ul id="reminderList"></ul>
         </section>
