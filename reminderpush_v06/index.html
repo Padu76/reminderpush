@@ -1,0 +1,44 @@
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>ReminderPush v0.6</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <header>
+        <h1>📌 ReminderPush</h1>
+        <button id="themeToggle" onclick="toggleTheme()">🌙</button>
+    </header>
+    <main>
+        <section class="card" id="form">
+            <h2>Crea o Modifica un Promemoria</h2>
+            <label for="title">Titolo</label>
+            <input type="text" id="title" placeholder="Es. Invia report...">
+            <label for="description">Descrizione</label>
+            <textarea id="description" placeholder="Dettagli del promemoria..."></textarea>
+            <label for="deadline">Scadenza</label>
+            <input type="datetime-local" id="deadline">
+            <label for="recipient">Destinatari (WhatsApp o Email separati da virgole)</label>
+            <textarea id="recipient" placeholder="Es. 39333..., test@email.com"></textarea>
+            <button onclick="sendReminder()">➕ Salva / Invia</button>
+        </section>
+
+        <section id="filters">
+            <button onclick="setFilter('all')">📋 Tutti</button>
+            <button onclick="setFilter('pending')">⏳ In sospeso</button>
+            <button onclick="setFilter('done')">✅ Completati</button>
+        </section>
+
+        <section class="card" id="history">
+            <h2>Cronologia</h2>
+            <ul id="reminderList"></ul>
+        </section>
+    </main>
+    <script src="script.js"></script>
+</body>
+</html>
