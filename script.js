@@ -1,5 +1,35 @@
 
-// Funzione per inviare reminder
+// Caricamento cronologia
+function loadReminders(filter = "all") {
+    const container = document.getElementById("reminderHistory");
+    container.innerHTML = "";
+
+    db.collection("reminders").orderBy("timestamp", "desc").get().then(snapshot => {
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            if (filter === "done" && data.status !== "✅ Fatto") return;
+            if (filter === "pending" && data.status === "✅ Fatto") return;
+
+            const card = document.createElement("div");
+            card.className = "reminder-card";
+            card.innerHTML = `
+                <h3>${data.title}</h3>
+                <p>${data.description}</p>
+                <p><strong>Scadenza:</strong> ${data.deadline}</p>
+                <p><strong>Destinatari:</strong> ${data.recipients.join(", ")}</p>
+                <p><strong>Stato:</strong> ${data.status || "⏳ In sospeso"}</p>
+                <div class="actions">
+                    <button onclick="markAsDone('${doc.id}')">✅ Fatto</button>
+                    <button onclick="editReminder('${doc.id}', '${data.title}', '${data.description}', '${data.deadline}', '${data.recipients.join(",")}')">✏️ Modifica</button>
+                    <button onclick="deleteReminder('${doc.id}')">🗑️ Elimina</button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    });
+}
+
+// Invio promemoria e salvataggio su Firebase
 function sendReminder() {
     const title = document.getElementById("title").value;
     const description = document.getElementById("description").value;
@@ -18,12 +48,11 @@ function sendReminder() {
         description,
         deadline,
         recipients,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        status: "⏳ In sospeso"
     };
 
     db.collection("reminders").add(reminder).then(docRef => {
-        console.log("✅ Reminder salvato su Firestore con ID:", docRef.id);
-
         const message = `Promemoria: ${title}%0ADescrizione: ${description}%0AScadenza: ${deadline}`;
         let links = recipients.map(recipient => {
             const isWhatsApp = /^[0-9]+$/.test(recipient);
@@ -33,10 +62,38 @@ function sendReminder() {
         }).join("\n");
 
         alert("✅ Reminder salvato!\nInvia manualmente aprendo questi link:\n" + links);
-
         loadReminders();
     }).catch(error => {
-        console.error("❌ Errore nel salvataggio su Firestore:", error);
-        alert("Errore nel salvataggio. Controlla la console.");
+        console.error("Errore Firebase:", error);
+        alert("❌ Errore nel salvataggio.");
     });
 }
+
+// Segna come fatto
+function markAsDone(id) {
+    db.collection("reminders").doc(id).update({ status: "✅ Fatto" }).then(loadReminders);
+}
+
+// Modifica
+function editReminder(id, title, desc, deadline, recipients) {
+    document.getElementById("title").value = title;
+    document.getElementById("description").value = desc;
+    document.getElementById("deadline").value = deadline;
+    document.getElementById("recipients").value = recipients;
+    deleteReminder(id);
+}
+
+// Elimina
+function deleteReminder(id) {
+    db.collection("reminders").doc(id).delete().then(loadReminders);
+}
+
+// Filtro
+function filterReminders(type) {
+    loadReminders(type);
+}
+
+// Carica all'avvio
+window.onload = () => {
+    loadReminders();
+};
