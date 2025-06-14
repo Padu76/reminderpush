@@ -86,12 +86,20 @@ async function sendReminder() {
         
         // Invia promemoria solo per nuovi reminder
         const message = `Promemoria: ${title}%0ADescrizione: ${description}%0AScadenza: ${deadline}`;
-        recipients.forEach(recipient => {
-            const isWhatsApp = /^[0-9+]+$/.test(recipient);
-            const link = isWhatsApp
-                ? `https://wa.me/${recipient}?text=${message}`
-                : `mailto:${recipient}?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(description + "\nScadenza: " + deadline)}`;
-            window.open(link, '_blank');
+        recipients.forEach((recipient, index) => {
+            setTimeout(() => {
+                const isWhatsApp = /^[0-9+]+$/.test(recipient);
+                const link = isWhatsApp
+                    ? `https://wa.me/${recipient}?text=${message}`
+                    : `mailto:${recipient}?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(description + "\nScadenza: " + deadline)}`;
+                
+                // Usa location.href per il primo link, window.open per gli altri
+                if (index === 0) {
+                    window.location.href = link;
+                } else {
+                    setTimeout(() => window.open(link, '_blank'), 1000 * index);
+                }
+            }, 500 * index);
         });
     }
 
