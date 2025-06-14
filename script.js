@@ -35,7 +35,10 @@ function sendReminder() {
             loadReminders();
         });
     } else {
-        db.collection("reminders").add(reminder).then(() => {
+        
+    db.collection("reminders").add(reminder).then(() => {
+        console.log("Reminder salvato su Firestore:", reminder);
+    
             const message = `Promemoria: ${title}%0ADescrizione: ${description}%0AScadenza: ${deadline}`;
             recipients.forEach(recipient => {
                 const isWhatsApp = /^[0-9]+$/.test(recipient);
