@@ -59,7 +59,15 @@
 
         // Rendi le funzioni Firebase globali
         window.db = db;
-        window.firestore = { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, onSnapshot };
+        window.firestore = { 
+            collection: collection, 
+            addDoc: addDoc, 
+            updateDoc: updateDoc, 
+            deleteDoc: deleteDoc, 
+            doc: doc, 
+            getDocs: getDocs, 
+            onSnapshot: onSnapshot 
+        };
     </script>
     <script src="script.js"></script>
 </body>

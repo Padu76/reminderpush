@@ -24,6 +24,24 @@ window.testFirestore = async function() {
     }
 };
 
+// DEBUG - Mostra struttura dati
+window.debugData = function() {
+    console.log('=== DEBUG DATI ===');
+    console.log('Array reminders:', reminders);
+    console.log('Lunghezza array:', reminders.length);
+    console.log('Filtro attuale:', filter);
+    
+    reminders.forEach((reminder, index) => {
+        console.log(`Promemoria ${index}:`, {
+            id: reminder.id,
+            title: reminder.title,
+            status: reminder.status,
+            recipients: reminder.recipients,
+            createdAt: reminder.createdAt
+        });
+    });
+};
+
 // Funzioni Firestore
 async function saveReminderToFirestore(reminderData) {
     try {
@@ -71,15 +89,31 @@ function loadRemindersFromFirestore() {
             reminders = [];
             snapshot.forEach((doc) => {
                 const data = doc.data();
-                console.log('Documento caricato:', doc.id, data);
-                reminders.push({
+                console.log('RAW Documento:', doc.id, data);
+                
+                // Pulisci e standardizza i dati
+                const cleanData = {
                     id: doc.id,
-                    ...data
-                });
+                    title: data.title || 'Titolo mancante',
+                    description: data.description || 'Descrizione mancante',
+                    deadline: data.deadline || new Date().toISOString(),
+                    recipients: Array.isArray(data.recipients) ? data.recipients : [data.recipients || 'Nessun destinatario'],
+                    status: data.status || '⏳ In sospeso',
+                    createdAt: data.createdAt || new Date().toISOString(),
+                    updatedAt: data.updatedAt || data.createdAt || new Date().toISOString()
+                };
+                
+                console.log('CLEAN Documento:', cleanData);
+                reminders.push(cleanData);
             });
+            
             // Ordina per data di creazione (più recenti prima)
             reminders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            console.log('✅ Promemoria caricati:', reminders.length);
+            console.log('✅ Promemoria caricati e ordinati:', reminders.length);
+            
+            // Debug finale
+            console.log('Array finale reminders:', reminders);
+            
             displayReminders();
         }, (error) => {
             console.error('❌ Errore nel caricamento:', error);
@@ -170,10 +204,15 @@ function displayReminders() {
     const list = document.getElementById('reminderList');
     list.innerHTML = '';
     
-    console.log('🖥️ Visualizzazione promemoria - Totali:', reminders.length, 'Filtro:', filter);
+    console.log('🖥️ DISPLAY - Inizio visualizzazione');
+    console.log('🖥️ DISPLAY - Array reminders:', reminders);
+    console.log('🖥️ DISPLAY - Lunghezza array:', reminders.length);
+    console.log('🖥️ DISPLAY - Filtro attuale:', filter);
     
     if (reminders.length === 0) {
-        list.innerHTML = '<li style="text-align: center; color: #999;">Nessun promemoria ancora</li>';
+        const msg = '<li style="text-align: center; color: #999;">Nessun promemoria ancora - Array vuoto</li>';
+        console.log('🖥️ DISPLAY - Mostrando:', msg);
+        list.innerHTML = msg;
         return;
     }
 
@@ -183,14 +222,20 @@ function displayReminders() {
         return true;
     });
 
-    console.log('📋 Promemoria filtrati:', filteredReminders.length);
+    console.log('🖥️ DISPLAY - Promemoria filtrati:', filteredReminders.length);
+    console.log('🖥️ DISPLAY - Lista filtrata:', filteredReminders);
 
     if (filteredReminders.length === 0) {
-        list.innerHTML = '<li style="text-align: center; color: #999;">Nessun promemoria per questo filtro</li>';
+        const msg = '<li style="text-align: center; color: #999;">Nessun promemoria per questo filtro</li>';
+        console.log('🖥️ DISPLAY - Filtro vuoto, mostrando:', msg);
+        list.innerHTML = msg;
         return;
     }
 
+    console.log('🖥️ DISPLAY - Creazione elementi HTML...');
     filteredReminders.forEach((reminder, index) => {
+        console.log(`🖥️ DISPLAY - Elemento ${index}:`, reminder);
+        
         const li = document.createElement('li');
         const deadlineDate = new Date(reminder.deadline);
         const isOverdue = reminder.status === '⏳ In sospeso' && deadlineDate <= new Date();
@@ -207,10 +252,13 @@ function displayReminders() {
                 ${reminder.status === '⏳ In sospeso' ? `<button onclick="markDone('${reminder.id}')">✅ Fatto</button>` : ''}
                 <button onclick="editReminder('${reminder.id}')">✏️ Modifica</button>
                 <button onclick="deleteReminder('${reminder.id}')" style="background: #ff4444;">🗑️ Elimina</button>
+                <button onclick="debugData()" style="background: #007bff;">🔍 Debug</button>
             </div>
         `;
         list.appendChild(li);
     });
+    
+    console.log('🖥️ DISPLAY - HTML creato e aggiunto al DOM');
 }
 
 async function markDone(docId) {
@@ -246,6 +294,7 @@ async function deleteReminder(docId) {
 }
 
 function setFilter(f, element) {
+    console.log('🔽 Cambio filtro da', filter, 'a', f);
     filter = f;
     displayReminders();
     
@@ -312,8 +361,10 @@ window.onload = () => {
             console.log('✅ Firebase collegato!');
             loadRemindersFromFirestore();
             
-            // Esponi la funzione di test
-            console.log('🔧 Funzione di test disponibile: testFirestore()');
+            // Esponi le funzioni di test
+            console.log('🔧 Funzioni debug disponibili:');
+            console.log('  - testFirestore() - Test connessione');
+            console.log('  - debugData() - Mostra struttura dati');
         } else {
             console.error('❌ Firebase non caricato');
             alert('Errore nel collegamento al database');
