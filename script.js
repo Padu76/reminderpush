@@ -2,100 +2,81 @@ let filter = 'all';
 let editingDocId = null;
 let reminders = [];
 
-// PULISCI localStorage all'avvio per evitare conflitti
+// Pulisci localStorage
 localStorage.removeItem('reminders');
-console.log('🧹 localStorage pulito - ora solo Firestore');
+console.log('🧹 localStorage pulito');
 
-// Funzioni Firestore
+// Funzioni Firestore con compat API
 async function saveReminderToFirestore(reminderData) {
     try {
-        console.log('💾 Salvataggio su Firestore:', reminderData);
-        const docRef = await window.firestore.addDoc(window.firestore.collection(window.db, 'reminders'), reminderData);
-        console.log('✅ Promemoria salvato con ID:', docRef.id);
+        console.log('💾 Salvataggio:', reminderData);
+        const docRef = await window.db.collection('reminders').add(reminderData);
+        console.log('✅ Salvato con ID:', docRef.id);
         return docRef.id;
     } catch (error) {
-        console.error('❌ Errore nel salvare:', error);
-        alert('Errore nel salvare il promemoria: ' + error.message);
+        console.error('❌ Errore salvataggio:', error);
+        alert('Errore: ' + error.message);
         throw error;
     }
 }
 
 async function updateReminderInFirestore(docId, reminderData) {
     try {
-        console.log('🔄 Aggiornamento promemoria:', docId, reminderData);
-        await window.firestore.updateDoc(window.firestore.doc(window.db, 'reminders', docId), reminderData);
-        console.log('✅ Promemoria aggiornato');
+        console.log('🔄 Aggiornamento:', docId);
+        await window.db.collection('reminders').doc(docId).update(reminderData);
+        console.log('✅ Aggiornato');
     } catch (error) {
-        console.error('❌ Errore nell\'aggiornare:', error);
-        alert('Errore nell\'aggiornare il promemoria: ' + error.message);
-        throw error;
+        console.error('❌ Errore aggiornamento:', error);
+        alert('Errore: ' + error.message);
     }
 }
 
 async function deleteReminderFromFirestore(docId) {
     try {
-        console.log('🗑️ Eliminazione promemoria:', docId);
-        await window.firestore.deleteDoc(window.firestore.doc(window.db, 'reminders', docId));
-        console.log('✅ Promemoria eliminato');
+        console.log('🗑️ Eliminazione:', docId);
+        await window.db.collection('reminders').doc(docId).delete();
+        console.log('✅ Eliminato');
     } catch (error) {
-        console.error('❌ Errore nell\'eliminare:', error);
-        alert('Errore nell\'eliminare il promemoria: ' + error.message);
-        throw error;
+        console.error('❌ Errore eliminazione:', error);
+        alert('Errore: ' + error.message);
     }
 }
 
 function loadRemindersFromFirestore() {
     try {
-        console.log('📡 Connessione a Firestore...');
+        console.log('📡 Ascolto cambiamenti Firestore...');
         
-        // Listener in tempo reale
-        const unsubscribe = window.firestore.onSnapshot(
-            window.firestore.collection(window.db, 'reminders'), 
-            (snapshot) => {
-                console.log('📥 Dati ricevuti da Firestore - Documenti:', snapshot.size);
+        window.db.collection('reminders').onSnapshot((snapshot) => {
+            console.log('📥 Snapshot - Documenti:', snapshot.size);
+            
+            reminders = [];
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                console.log('📄 Doc:', doc.id, data);
                 
-                // Pulisci array
-                reminders = [];
-                
-                // Carica ogni documento
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
-                    console.log('📄 Documento:', doc.id, data);
-                    
-                    // Normalizza i dati
-                    const cleanData = {
-                        id: doc.id,
-                        title: data.title || 'Titolo mancante',
-                        description: data.description || 'Descrizione mancante',
-                        deadline: data.deadline || new Date().toISOString(),
-                        recipients: Array.isArray(data.recipients) ? data.recipients : [data.recipients || 'Nessun destinatario'],
-                        status: data.status || '⏳ In sospeso',
-                        createdAt: data.createdAt || new Date().toISOString(),
-                        updatedAt: data.updatedAt || data.createdAt || new Date().toISOString()
-                    };
-                    
-                    reminders.push(cleanData);
+                reminders.push({
+                    id: doc.id,
+                    title: data.title || 'Titolo mancante',
+                    description: data.description || 'Descrizione mancante',
+                    deadline: data.deadline || new Date().toISOString(),
+                    recipients: Array.isArray(data.recipients) ? data.recipients : [data.recipients || 'Nessun destinatario'],
+                    status: data.status || '⏳ In sospeso',
+                    createdAt: data.createdAt || new Date().toISOString(),
+                    updatedAt: data.updatedAt || data.createdAt || new Date().toISOString()
                 });
-                
-                // Ordina per data
-                reminders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                
-                console.log('✅ Promemoria caricati:', reminders.length);
-                console.log('📋 Lista completa:', reminders);
-                
-                // Aggiorna interfaccia
-                displayReminders();
-            }, 
-            (error) => {
-                console.error('❌ Errore Firestore:', error);
-                alert('Errore nel collegamento a Firestore: ' + error.message);
-            }
-        );
+            });
+            
+            reminders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            console.log('✅ Caricati:', reminders.length, 'promemoria');
+            
+            displayReminders();
+        }, (error) => {
+            console.error('❌ Errore listener:', error);
+            alert('Errore connessione: ' + error.message);
+        });
         
-        return unsubscribe;
     } catch (error) {
-        console.error('❌ Errore nell\'inizializzare Firestore:', error);
-        alert('Errore nella connessione: ' + error.message);
+        console.error('❌ Errore inizializzazione listener:', error);
     }
 }
 
@@ -108,15 +89,13 @@ async function sendReminder() {
 
     console.log('📝 Nuovo promemoria:', { title, description, deadline, recipients });
 
-    // Validazione
     if (!title || !description || !deadline || recipients.length === 0) {
         alert('⚠️ Compila tutti i campi!');
         return;
     }
 
-    // Verifica Firestore
-    if (!window.db || !window.firestore) {
-        alert('❌ Firestore non collegato!');
+    if (!window.db) {
+        alert('❌ Database non collegato!');
         return;
     }
 
@@ -132,15 +111,13 @@ async function sendReminder() {
 
     try {
         if (editingDocId) {
-            // Modifica esistente
             const existing = reminders.find(r => r.id === editingDocId);
             if (existing) {
-                reminderData.createdAt = existing.createdAt; // Mantieni data originale
+                reminderData.createdAt = existing.createdAt;
             }
             await updateReminderInFirestore(editingDocId, reminderData);
             editingDocId = null;
         } else {
-            // Nuovo promemoria
             await saveReminderToFirestore(reminderData);
             
             // Invia notifiche
@@ -163,7 +140,7 @@ async function sendReminder() {
 
         clearForm();
     } catch (error) {
-        console.error('❌ Errore nel salvataggio:', error);
+        console.error('❌ Errore generale:', error);
     }
 }
 
@@ -178,28 +155,26 @@ function displayReminders() {
     const list = document.getElementById('reminderList');
     list.innerHTML = '';
     
-    console.log('🖥️ Visualizzazione - Promemoria totali:', reminders.length, 'Filtro:', filter);
+    console.log('🖥️ Display - Totali:', reminders.length, 'Filtro:', filter);
     
     if (reminders.length === 0) {
-        list.innerHTML = '<li style="text-align: center; color: #999; padding: 2rem;">📭 Nessun promemoria trovato<br><small>Crea il tuo primo promemoria!</small></li>';
+        list.innerHTML = '<li style="text-align: center; color: #999; padding: 2rem;">📭 Nessun promemoria<br><small>Crea il tuo primo promemoria!</small></li>';
         return;
     }
 
-    // Applica filtri
     const filteredReminders = reminders.filter(reminder => {
         if (filter === 'pending' && reminder.status !== '⏳ In sospeso') return false;
         if (filter === 'done' && reminder.status !== '✅ Completato') return false;
         return true;
     });
 
-    console.log('🔍 Dopo filtro:', filteredReminders.length, 'promemoria');
+    console.log('🔍 Filtrati:', filteredReminders.length);
 
     if (filteredReminders.length === 0) {
         list.innerHTML = '<li style="text-align: center; color: #999; padding: 2rem;">🔍 Nessun promemoria per questo filtro</li>';
         return;
     }
 
-    // Crea elementi HTML
     filteredReminders.forEach((reminder, index) => {
         const li = document.createElement('li');
         const deadlineDate = new Date(reminder.deadline);
@@ -238,10 +213,9 @@ function displayReminders() {
         `;
         
         list.appendChild(li);
-        console.log(`✅ Elemento ${index + 1} aggiunto al DOM`);
     });
     
-    console.log('🎉 Interfaccia aggiornata con', filteredReminders.length, 'promemoria');
+    console.log('🎉 Interfaccia aggiornata');
 }
 
 async function markDone(docId) {
@@ -270,23 +244,31 @@ function editReminder(docId) {
 }
 
 async function deleteReminder(docId) {
-    if (confirm('🗑️ Sei sicuro di voler eliminare questo promemoria?')) {
+    if (confirm('🗑️ Eliminare questo promemoria?')) {
         await deleteReminderFromFirestore(docId);
     }
 }
 
 function setFilter(f, element) {
-    console.log('🔽 Filtro cambiato:', filter, '→', f);
+    console.log('🔽 Filtro:', filter, '→', f);
     filter = f;
     displayReminders();
     
-    // Aggiorna stile bottoni
     document.querySelectorAll('#filters button').forEach(btn => {
         btn.style.opacity = '0.7';
     });
     if (element) {
         element.style.opacity = '1';
     }
+}
+
+function toggleTheme() {
+    document.body.classList.toggle("dark");
+    const current = document.body.classList.contains("dark") ? "dark" : "light";
+    localStorage.setItem("theme", current);
+    
+    const themeButton = document.getElementById('themeToggle');
+    themeButton.textContent = current === 'dark' ? '☀️' : '🌙';
 }
 
 function checkReminders() {
@@ -305,29 +287,20 @@ function checkReminders() {
     }
 }
 
-function toggleTheme() {
-    document.body.classList.toggle("dark");
-    const current = document.body.classList.contains("dark") ? "dark" : "light";
-    localStorage.setItem("theme", current);
-    
-    const themeButton = document.getElementById('themeToggle');
-    themeButton.textContent = current === 'dark' ? '☀️' : '🌙';
-}
-
-// DEBUG - Funzione per testare Firestore
+// Test function
 window.testFirestore = async function() {
     try {
-        const testDoc = await window.firestore.addDoc(window.firestore.collection(window.db, 'reminders'), {
-            title: 'Test da console ' + new Date().getTime(),
-            description: 'Questo è un test diretto',
-            deadline: '2025-06-16T14:00',
-            recipients: ['console@test.com'],
+        const docRef = await window.db.collection('reminders').add({
+            title: 'Test compat ' + new Date().getTime(),
+            description: 'Test con Firebase compat',
+            deadline: '2025-06-16T15:00',
+            recipients: ['test@compat.com'],
             status: '⏳ In sospeso',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         });
-        console.log('✅ Test OK - ID:', testDoc.id);
-        alert('Test riuscito! Nuovo promemoria creato.');
+        console.log('✅ Test compat OK - ID:', docRef.id);
+        alert('Test riuscito!');
     } catch (error) {
         console.error('❌ Test fallito:', error);
         alert('Test fallito: ' + error.message);
@@ -336,7 +309,7 @@ window.testFirestore = async function() {
 
 // Inizializzazione
 window.onload = () => {
-    console.log('🚀 ReminderPush v0.6 - Solo Firestore');
+    console.log('🚀 ReminderPush v0.6 - Firebase Compat');
     
     // Tema
     const savedTheme = localStorage.getItem("theme");
@@ -345,19 +318,18 @@ window.onload = () => {
         document.getElementById('themeToggle').textContent = '☀️';
     }
     
-    // Firestore
+    // Firebase
     setTimeout(() => {
-        if (window.db && window.firestore) {
-            console.log('✅ Firebase pronto!');
+        if (window.db) {
+            console.log('✅ Database pronto');
             loadRemindersFromFirestore();
-            console.log('🔧 Comando debug: testFirestore()');
+            console.log('🔧 Test: testFirestore()');
         } else {
-            console.error('❌ Firebase non trovato');
-            alert('Errore: Firebase non caricato');
+            console.error('❌ Database non trovato');
+            alert('Database non collegato');
         }
     }, 1000);
     
-    // Notifiche
     setInterval(checkReminders, 60000);
     
     if ('Notification' in window && Notification.permission === 'default') {

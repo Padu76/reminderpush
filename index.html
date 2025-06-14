@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>ReminderPush v0.5</title>
+    <title>ReminderPush v0.6</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 </head>
@@ -36,62 +36,48 @@
             <ul id="reminderList"></ul>
         </section>
     </main>
-    <!-- Firebase v9 SDK da JSDelivr invece di gstatic -->
-    <script type="module">
+
+    <!-- Firebase v9 SDK - Metodo tradizionale -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    
+    <script>
+        console.log('🚀 Caricamento Firebase compat...');
+        
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyC-s8VuHiNx2mnWvUynFa7eYj4r9LHC5LQ",
+            authDomain: "reminderpush.firebaseapp.com",
+            projectId: "reminderpush",
+            storageBucket: "reminderpush.firebasestorage.app",
+            messagingSenderId: "533477700960",
+            appId: "1:533477700960:web:94d90a7e327ec2912d1a05",
+            measurementId: "G-RZ3Y5EV1DX"
+        };
+
         try {
-            console.log('🚀 Tentativo caricamento Firebase...');
-            
-            // Import Firebase functions da JSDelivr
-            const { initializeApp } = await import('https://cdn.jsdelivr.net/npm/firebase@10.12.2/app/+esm');
-            const { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, getDocs, onSnapshot } = await import('https://cdn.jsdelivr.net/npm/firebase@10.12.2/firestore/+esm');
-
-            console.log('✅ Moduli Firebase importati con successo');
-
-            // Firebase config
-            const firebaseConfig = {
-                apiKey: "AIzaSyC-s8VuHiNx2mnWvUynFa7eYj4r9LHC5LQ",
-                authDomain: "reminderpush.firebaseapp.com",
-                projectId: "reminderpush",
-                storageBucket: "reminderpush.firebasestorage.app",
-                messagingSenderId: "533477700960",
-                appId: "1:533477700960:web:94d90a7e327ec2912d1a05",
-                measurementId: "G-RZ3Y5EV1DX"
-            };
-
-            console.log('🔧 Inizializzazione Firebase con config:', firebaseConfig);
-
             // Initialize Firebase
-            const app = initializeApp(firebaseConfig);
-            const db = getFirestore(app);
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
+            
+            console.log('✅ Firebase inizializzato con compat');
+            console.log('✅ Firestore ottenuto');
 
-            console.log('✅ Firebase app inizializzata');
-            console.log('✅ Firestore database ottenuto');
+            // Test connessione
+            db.collection('reminders');
+            console.log('✅ Collection accessibile');
 
-            // Test immediato di connessione
-            collection(db, 'reminders');
-            console.log('✅ Collection reminders accessibile');
-
-            // Rendi le funzioni Firebase globali
+            // Esponi globalmente
             window.db = db;
-            window.firestore = { 
-                collection: collection, 
-                addDoc: addDoc, 
-                updateDoc: updateDoc, 
-                deleteDoc: deleteDoc, 
-                doc: doc, 
-                getDocs: getDocs, 
-                onSnapshot: onSnapshot 
-            };
-
-            console.log('🎉 FIREBASE PRONTO! Funzioni esposte globalmente');
+            window.firebase = firebase;
+            
+            console.log('🎉 FIREBASE COMPAT PRONTO!');
 
         } catch (error) {
-            console.error('❌ ERRORE caricamento Firebase:', error);
-            alert('⚠️ ERRORE Firebase: ' + error.message + '\n\nL\'app funzionerà solo in modalità locale.');
-            
-            // Fallback - disabilita Firestore
+            console.error('❌ Errore Firebase compat:', error);
+            alert('Errore Firebase: ' + error.message);
             window.db = null;
-            window.firestore = null;
+            window.firebase = null;
         }
     </script>
     <script src="script.js"></script>
