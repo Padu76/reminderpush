@@ -1,5 +1,5 @@
 
-// Funzione per invio reminder
+// Funzione per inviare reminder
 function sendReminder() {
     const title = document.getElementById("title").value;
     const description = document.getElementById("description").value;
@@ -32,11 +32,11 @@ function sendReminder() {
                 : `mailto:${recipient}?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(description + "\nScadenza: " + deadline)}`;
         }).join("\n");
 
-        alert("Reminder salvato!\nInvia manualmente aprendo questi link:\n" + links);
+        alert("✅ Reminder salvato!\nInvia manualmente aprendo questi link:\n" + links);
 
         loadReminders();
     }).catch(error => {
         console.error("❌ Errore nel salvataggio su Firestore:", error);
-        alert("Errore nel salvataggio su Firestore. Controlla la console per i dettagli.");
+        alert("Errore nel salvataggio. Controlla la console.");
     });
 }
