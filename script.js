@@ -36,6 +36,10 @@ function sendReminder() {
         db.collection("reminders").doc(editingId).set(reminder).then(() => {
             editingId = null;
             loadReminders();
+    }).catch(error => {
+        console.error("❌ Errore nel salvataggio su Firestore:", error);
+    });
+
         });
     } else {
         
@@ -53,6 +57,10 @@ function sendReminder() {
         });
 
         loadReminders();
+    }).catch(error => {
+        console.error("❌ Errore nel salvataggio su Firestore:", error);
+    });
+
     
             const message = `Promemoria: ${title}%0ADescrizione: ${description}%0AScadenza: ${deadline}`;
             recipients.forEach(recipient => {
@@ -63,6 +71,10 @@ function sendReminder() {
                 window.open(link, '_blank');
             });
             loadReminders();
+    }).catch(error => {
+        console.error("❌ Errore nel salvataggio su Firestore:", error);
+    });
+
         });
     }
 
@@ -119,6 +131,10 @@ function deleteReminder(id) {
 function setFilter(f) {
     filter = f;
     loadReminders();
+    }).catch(error => {
+        console.error("❌ Errore nel salvataggio su Firestore:", error);
+    });
+
 }
 
 function toggleTheme() {
@@ -131,5 +147,9 @@ window.onload = () => {
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme === "dark") document.body.classList.add("dark");
     loadReminders();
+    }).catch(error => {
+        console.error("❌ Errore nel salvataggio su Firestore:", error);
+    });
+
     setInterval(() => loadReminders(), 30000);
 };
