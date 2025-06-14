@@ -36,26 +36,30 @@
             <ul id="reminderList"></ul>
         </section>
     </main>
-    <!-- Firebase v9 SDK -->
+    <!-- Firebase v9 SDK da JSDelivr invece di gstatic -->
     <script type="module">
-        // Import Firebase functions
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, getDocs, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-
-        // Firebase config - VERIFICA CHE SIA CORRETTO
-        const firebaseConfig = {
-            apiKey: "AIzaSyC-s8VuHiNx2mnWvUynFa7eYj4r9LHC5LQ",
-            authDomain: "reminderpush.firebaseapp.com",
-            projectId: "reminderpush",
-            storageBucket: "reminderpush.firebasestorage.app",
-            messagingSenderId: "533477700960",
-            appId: "1:533477700960:web:94d90a7e327ec2912d1a05",
-            measurementId: "G-RZ3Y5EV1DX"
-        };
-
-        console.log('🔧 Inizializzazione Firebase con config:', firebaseConfig);
-
         try {
+            console.log('🚀 Tentativo caricamento Firebase...');
+            
+            // Import Firebase functions da JSDelivr
+            const { initializeApp } = await import('https://cdn.jsdelivr.net/npm/firebase@10.12.2/app/+esm');
+            const { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, getDocs, onSnapshot } = await import('https://cdn.jsdelivr.net/npm/firebase@10.12.2/firestore/+esm');
+
+            console.log('✅ Moduli Firebase importati con successo');
+
+            // Firebase config
+            const firebaseConfig = {
+                apiKey: "AIzaSyC-s8VuHiNx2mnWvUynFa7eYj4r9LHC5LQ",
+                authDomain: "reminderpush.firebaseapp.com",
+                projectId: "reminderpush",
+                storageBucket: "reminderpush.firebasestorage.app",
+                messagingSenderId: "533477700960",
+                appId: "1:533477700960:web:94d90a7e327ec2912d1a05",
+                measurementId: "G-RZ3Y5EV1DX"
+            };
+
+            console.log('🔧 Inizializzazione Firebase con config:', firebaseConfig);
+
             // Initialize Firebase
             const app = initializeApp(firebaseConfig);
             const db = getFirestore(app);
@@ -79,11 +83,15 @@
                 onSnapshot: onSnapshot 
             };
 
-            console.log('✅ Funzioni Firebase esposte globalmente');
+            console.log('🎉 FIREBASE PRONTO! Funzioni esposte globalmente');
 
         } catch (error) {
-            console.error('❌ ERRORE inizializzazione Firebase:', error);
-            alert('ERRORE Firebase: ' + error.message);
+            console.error('❌ ERRORE caricamento Firebase:', error);
+            alert('⚠️ ERRORE Firebase: ' + error.message + '\n\nL\'app funzionerà solo in modalità locale.');
+            
+            // Fallback - disabilita Firestore
+            window.db = null;
+            window.firestore = null;
         }
     </script>
     <script src="script.js"></script>
