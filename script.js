@@ -124,15 +124,17 @@ function deleteReminder(index) {
     }
 }
 
-function setFilter(f) {
+function setFilter(f, element) {
     filter = f;
     loadReminders();
     
-    // Aggiorna visivamente i bottoni del filtro
+    // Aggiorna visualmente i bottoni del filtro
     document.querySelectorAll('#filters button').forEach(btn => {
         btn.style.opacity = '0.7';
     });
-    event.target.style.opacity = '1';
+    if (element) {
+        element.style.opacity = '1';
+    }
 }
 
 function checkReminders() {

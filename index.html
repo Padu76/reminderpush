@@ -1,9 +1,8 @@
-
 <!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>ReminderPush</title>
+    <title>ReminderPush v0.5</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 </head>
@@ -27,9 +26,9 @@
         </section>
 
         <section id="filters">
-            <button onclick="setFilter('all')">📋 Tutti</button>
-            <button onclick="setFilter('pending')">⏳ In sospeso</button>
-            <button onclick="setFilter('done')">✅ Completati</button>
+            <button onclick="setFilter('all', this)">📋 Tutti</button>
+            <button onclick="setFilter('pending', this)">⏳ In sospeso</button>
+            <button onclick="setFilter('done', this)">✅ Completati</button>
         </section>
 
         <section class="card" id="history">
@@ -37,10 +36,6 @@
             <ul id="reminderList"></ul>
         </section>
     </main>
-
-    <!-- Firebase SDK e Script App -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
