@@ -36,6 +36,31 @@
             <ul id="reminderList"></ul>
         </section>
     </main>
+    <!-- Firebase v9 SDK -->
+    <script type="module">
+        // Import Firebase functions
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, getDocs, onSnapshot } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyC-s8VuHiNx2mnWvUynFa7eYj4r9LHC5LQ",
+            authDomain: "reminderpush.firebaseapp.com",
+            projectId: "reminderpush",
+            storageBucket: "reminderpush.firebasestorage.app",
+            messagingSenderId: "533477700960",
+            appId: "1:533477700960:web:94d90a7e327ec2912d1a05",
+            measurementId: "G-RZ3Y5EV1DX"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Rendi le funzioni Firebase globali
+        window.db = db;
+        window.firestore = { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, onSnapshot };
+    </script>
     <script src="script.js"></script>
 </body>
 </html>

@@ -1,7 +1,57 @@
 let filter = 'all';
 let editingIndex = null;
+let editingDocId = null;
+let reminders = [];
 
-function sendReminder() {
+// Funzioni Firestore
+async function saveReminderToFirestore(reminderData) {
+    try {
+        const docRef = await window.firestore.addDoc(window.firestore.collection(window.db, 'reminders'), reminderData);
+        console.log('Promemoria salvato con ID:', docRef.id);
+        return docRef.id;
+    } catch (error) {
+        console.error('Errore nel salvare:', error);
+        alert('Errore nel salvare il promemoria');
+    }
+}
+
+async function updateReminderInFirestore(docId, reminderData) {
+    try {
+        await window.firestore.updateDoc(window.firestore.doc(window.db, 'reminders', docId), reminderData);
+        console.log('Promemoria aggiornato');
+    } catch (error) {
+        console.error('Errore nell\'aggiornare:', error);
+        alert('Errore nell\'aggiornare il promemoria');
+    }
+}
+
+async function deleteReminderFromFirestore(docId) {
+    try {
+        await window.firestore.deleteDoc(window.firestore.doc(window.db, 'reminders', docId));
+        console.log('Promemoria eliminato');
+    } catch (error) {
+        console.error('Errore nell\'eliminare:', error);
+        alert('Errore nell\'eliminare il promemoria');
+    }
+}
+
+function loadRemindersFromFirestore() {
+    // Ascolta i cambiamenti in tempo reale
+    window.firestore.onSnapshot(window.firestore.collection(window.db, 'reminders'), (snapshot) => {
+        reminders = [];
+        snapshot.forEach((doc) => {
+            reminders.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+        // Ordina per data di creazione (più recenti prima)
+        reminders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        displayReminders();
+    });
+}
+
+async function sendReminder() {
     const title = document.getElementById('title').value;
     const description = document.getElementById('description').value;
     const deadline = document.getElementById('deadline').value;
@@ -14,30 +64,27 @@ function sendReminder() {
         return;
     }
 
-    const reminders = JSON.parse(localStorage.getItem('reminders') || '[]');
+    const reminderData = {
+        title,
+        description,
+        deadline,
+        recipients,
+        status: '⏳ In sospeso',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    };
 
-    if (editingIndex !== null) {
-        reminders[editingIndex] = { 
-            title, 
-            description, 
-            deadline, 
-            recipients, 
-            status: '⏳ In sospeso',
-            createdAt: reminders[editingIndex].createdAt || new Date().toISOString()
-        };
+    if (editingDocId !== null) {
+        // Modifica promemoria esistente
+        reminderData.createdAt = reminders.find(r => r.id === editingDocId).createdAt; // Mantieni data originale
+        await updateReminderInFirestore(editingDocId, reminderData);
+        editingDocId = null;
         editingIndex = null;
     } else {
-        const newReminder = { 
-            title, 
-            description, 
-            deadline, 
-            recipients, 
-            status: '⏳ In sospeso',
-            createdAt: new Date().toISOString()
-        };
-        reminders.push(newReminder);
+        // Nuovo promemoria
+        await saveReminderToFirestore(reminderData);
         
-        // Invia promemoria solo per nuovi reminder (non per modifiche)
+        // Invia promemoria solo per nuovi reminder
         const message = `Promemoria: ${title}%0ADescrizione: ${description}%0AScadenza: ${deadline}`;
         recipients.forEach(recipient => {
             const isWhatsApp = /^[0-9+]+$/.test(recipient);
@@ -48,8 +95,6 @@ function sendReminder() {
         });
     }
 
-    localStorage.setItem('reminders', JSON.stringify(reminders));
-    loadReminders();
     clearForm();
 }
 
@@ -60,8 +105,7 @@ function clearForm() {
     document.getElementById('recipient').value = '';
 }
 
-function loadReminders() {
-    const reminders = JSON.parse(localStorage.getItem('reminders') || '[]');
+function displayReminders() {
     const list = document.getElementById('reminderList');
     list.innerHTML = '';
     
@@ -70,10 +114,18 @@ function loadReminders() {
         return;
     }
 
-    reminders.forEach((reminder, index) => {
-        if (filter === 'pending' && reminder.status !== '⏳ In sospeso') return;
-        if (filter === 'done' && reminder.status !== '✅ Completato') return;
+    const filteredReminders = reminders.filter(reminder => {
+        if (filter === 'pending' && reminder.status !== '⏳ In sospeso') return false;
+        if (filter === 'done' && reminder.status !== '✅ Completato') return false;
+        return true;
+    });
 
+    if (filteredReminders.length === 0) {
+        list.innerHTML = '<li style="text-align: center; color: #999;">Nessun promemoria per questo filtro</li>';
+        return;
+    }
+
+    filteredReminders.forEach((reminder, index) => {
         const li = document.createElement('li');
         const deadlineDate = new Date(reminder.deadline);
         const isOverdue = reminder.status === '⏳ In sospeso' && deadlineDate <= new Date();
@@ -82,51 +134,54 @@ function loadReminders() {
             <strong style="${isOverdue ? 'color: #ff4444;' : ''}">${reminder.title}</strong><br>
             ${reminder.description}<br>
             <small>Scadenza: ${deadlineDate.toLocaleString('it-IT')} ${isOverdue ? '⚠️ SCADUTO' : ''}</small><br>
+            <small>Creato: ${new Date(reminder.createdAt).toLocaleString('it-IT')}</small><br>
             Destinatari: ${reminder.recipients.join(', ')}<br>
             Stato: ${reminder.status}<br>
             <div style="margin-top: 0.5rem;">
-                ${reminder.status === '⏳ In sospeso' ? `<button onclick="markDone(${index})">✅ Fatto</button>` : ''}
-                <button onclick="editReminder(${index})">✏️ Modifica</button>
-                <button onclick="deleteReminder(${index})" style="background: #ff4444;">🗑️ Elimina</button>
+                ${reminder.status === '⏳ In sospeso' ? `<button onclick="markDone('${reminder.id}')">✅ Fatto</button>` : ''}
+                <button onclick="editReminder('${reminder.id}')">✏️ Modifica</button>
+                <button onclick="deleteReminder('${reminder.id}')" style="background: #ff4444;">🗑️ Elimina</button>
             </div>
         `;
         list.appendChild(li);
     });
 }
 
-function markDone(index) {
-    const reminders = JSON.parse(localStorage.getItem('reminders') || '[]');
-    reminders[index].status = '✅ Completato';
-    reminders[index].completedAt = new Date().toISOString();
-    localStorage.setItem('reminders', JSON.stringify(reminders));
-    loadReminders();
+async function markDone(docId) {
+    const reminder = reminders.find(r => r.id === docId);
+    if (reminder) {
+        await updateReminderInFirestore(docId, {
+            ...reminder,
+            status: '✅ Completato',
+            completedAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        });
+    }
 }
 
-function editReminder(index) {
-    const reminders = JSON.parse(localStorage.getItem('reminders') || '[]');
-    const r = reminders[index];
-    document.getElementById('title').value = r.title;
-    document.getElementById('description').value = r.description;
-    document.getElementById('deadline').value = r.deadline;
-    document.getElementById('recipient').value = r.recipients.join(', ');
-    editingIndex = index;
-    
-    // Scroll al form
-    document.getElementById('form').scrollIntoView({ behavior: 'smooth' });
+function editReminder(docId) {
+    const reminder = reminders.find(r => r.id === docId);
+    if (reminder) {
+        document.getElementById('title').value = reminder.title;
+        document.getElementById('description').value = reminder.description;
+        document.getElementById('deadline').value = reminder.deadline;
+        document.getElementById('recipient').value = reminder.recipients.join(', ');
+        editingDocId = docId;
+        
+        // Scroll al form
+        document.getElementById('form').scrollIntoView({ behavior: 'smooth' });
+    }
 }
 
-function deleteReminder(index) {
+async function deleteReminder(docId) {
     if (confirm('Sei sicuro di voler eliminare questo promemoria?')) {
-        const reminders = JSON.parse(localStorage.getItem('reminders') || '[]');
-        reminders.splice(index, 1);
-        localStorage.setItem('reminders', JSON.stringify(reminders));
-        loadReminders();
+        await deleteReminderFromFirestore(docId);
     }
 }
 
 function setFilter(f, element) {
     filter = f;
-    loadReminders();
+    displayReminders();
     
     // Aggiorna visualmente i bottoni del filtro
     document.querySelectorAll('#filters button').forEach(btn => {
@@ -139,10 +194,9 @@ function setFilter(f, element) {
 
 function checkReminders() {
     const now = new Date();
-    const reminders = JSON.parse(localStorage.getItem('reminders') || '[]');
     let overdueCount = 0;
     
-    reminders.forEach((r, i) => {
+    reminders.forEach((r) => {
         if (r.status === '⏳ In sospeso' && new Date(r.deadline) <= now) {
             overdueCount++;
         }
@@ -184,17 +238,22 @@ window.onload = () => {
         document.getElementById('themeToggle').textContent = '☀️';
     }
     
-    // Carica promemoria
-    loadReminders();
+    // Aspetta che Firebase sia caricato
+    setTimeout(() => {
+        if (window.db && window.firestore) {
+            loadRemindersFromFirestore();
+            console.log('Firebase collegato!');
+        } else {
+            console.error('Firebase non caricato');
+            alert('Errore nel collegamento al database');
+        }
+    }, 1000);
     
     // Avvia controllo periodico
-    setInterval(checkReminders, 60000); // ogni minuto invece di 30 sec
+    setInterval(checkReminders, 60000); // ogni minuto
     
     // Richiedi permessi per notifiche
     if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission();
     }
-    
-    // Controlla subito all'avvio
-    checkReminders();
 };
