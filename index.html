@@ -39,10 +39,10 @@
     <!-- Firebase v9 SDK -->
     <script type="module">
         // Import Firebase functions
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, getDocs, onSnapshot } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, getDocs, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-        // Firebase config
+        // Firebase config - VERIFICA CHE SIA CORRETTO
         const firebaseConfig = {
             apiKey: "AIzaSyC-s8VuHiNx2mnWvUynFa7eYj4r9LHC5LQ",
             authDomain: "reminderpush.firebaseapp.com",
@@ -53,21 +53,38 @@
             measurementId: "G-RZ3Y5EV1DX"
         };
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        console.log('🔧 Inizializzazione Firebase con config:', firebaseConfig);
 
-        // Rendi le funzioni Firebase globali
-        window.db = db;
-        window.firestore = { 
-            collection: collection, 
-            addDoc: addDoc, 
-            updateDoc: updateDoc, 
-            deleteDoc: deleteDoc, 
-            doc: doc, 
-            getDocs: getDocs, 
-            onSnapshot: onSnapshot 
-        };
+        try {
+            // Initialize Firebase
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+
+            console.log('✅ Firebase app inizializzata');
+            console.log('✅ Firestore database ottenuto');
+
+            // Test immediato di connessione
+            collection(db, 'reminders');
+            console.log('✅ Collection reminders accessibile');
+
+            // Rendi le funzioni Firebase globali
+            window.db = db;
+            window.firestore = { 
+                collection: collection, 
+                addDoc: addDoc, 
+                updateDoc: updateDoc, 
+                deleteDoc: deleteDoc, 
+                doc: doc, 
+                getDocs: getDocs, 
+                onSnapshot: onSnapshot 
+            };
+
+            console.log('✅ Funzioni Firebase esposte globalmente');
+
+        } catch (error) {
+            console.error('❌ ERRORE inizializzazione Firebase:', error);
+            alert('ERRORE Firebase: ' + error.message);
+        }
     </script>
     <script src="script.js"></script>
 </body>
