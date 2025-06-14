@@ -29,15 +29,30 @@ function sendReminder() {
 
     const reminder = { title, description, deadline, recipients, status: '⏳ In sospeso' };
 
+    
     if (editingId) {
+        console.log("📝 Modalità modifica: ID", editingId);
+    
         db.collection("reminders").doc(editingId).set(reminder).then(() => {
             editingId = null;
             loadReminders();
         });
     } else {
         
-    db.collection("reminders").add(reminder).then(() => {
-        console.log("Reminder salvato su Firestore:", reminder);
+    db.collection("reminders").add(reminder).then(docRef => {
+        console.log("✅ Reminder salvato su Firestore con ID:", docRef.id);
+
+        // Invia messaggio solo dopo salvataggio riuscito
+        const message = `Promemoria: ${title}%0ADescrizione: ${description}%0AScadenza: ${deadline}`;
+        recipients.forEach(recipient => {
+            const isWhatsApp = /^[0-9]+$/.test(recipient);
+            const link = isWhatsApp
+                ? `https://wa.me/${recipient}?text=${message}`
+                : `mailto:${recipient}?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(description + "\nScadenza: " + deadline)}`;
+            window.open(link, '_blank');
+        });
+
+        loadReminders();
     
             const message = `Promemoria: ${title}%0ADescrizione: ${description}%0AScadenza: ${deadline}`;
             recipients.forEach(recipient => {
