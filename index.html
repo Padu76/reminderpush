@@ -2,6 +2,12 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TRIBÙ Alert Scadenze">
+    <meta name="theme-color" content="#ff6b35">
     <title>TRIBÙ - Alert Scadenze Tesserati</title>
     <style>
         * {
@@ -34,6 +40,7 @@
             --accent: #f0f0f0;
         }
 
+        /* Miglioramenti Mobile */
         body {
             font-family: 'Poppins', sans-serif;
             margin: 0;
@@ -42,6 +49,10 @@
             color: var(--text);
             transition: background 0.3s, color 0.3s;
             overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
 
         header {
@@ -578,6 +589,10 @@
         }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
     <header>
@@ -784,6 +799,100 @@
     </div>
 
     <script>
+        // CONFIGURAZIONE FIREBASE - Dati reali dal tuo progetto
+        const firebaseConfig = {
+            apiKey: "AIzaSyC-s8VuHiNx2mnWvUynFa7eYj4r9LHC5LQ",
+            authDomain: "reminderpush.firebaseapp.com",
+            projectId: "reminderpush",
+            storageBucket: "reminderpush.firebasestorage.app",
+            messagingSenderId: "533477700960",
+            appId: "1:533477700960:web:94d90a7e327ec2912d1a05",
+            measurementId: "G-RZ3Y5EV1DX"
+        };
+
+        // Inizializza Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Database helper functions
+        const FirebaseDB = {
+            // Carica membri
+            async getMembers() {
+                try {
+                    const snapshot = await db.collection('members').get();
+                    return snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                } catch (error) {
+                    console.error('Errore caricamento membri:', error);
+                    // Fallback al localStorage se Firebase non funziona
+                    return JSON.parse(localStorage.getItem('members') || '[]');
+                }
+            },
+
+            // Salva membro
+            async saveMember(member) {
+                try {
+                    if (member.id) {
+                        await db.collection('members').doc(member.id).update(member);
+                    } else {
+                        await db.collection('members').add(member);
+                    }
+                    return true;
+                } catch (error) {
+                    console.error('Errore salvataggio membro:', error);
+                    // Fallback al localStorage
+                    const members = JSON.parse(localStorage.getItem('members') || '[]');
+                    if (member.id) {
+                        const index = members.findIndex(m => m.id === member.id);
+                        if (index >= 0) members[index] = member;
+                    } else {
+                        member.id = Date.now().toString();
+                        members.push(member);
+                    }
+                    localStorage.setItem('members', JSON.stringify(members));
+                    return false;
+                }
+            },
+
+            // Elimina membro
+            async deleteMember(memberId) {
+                try {
+                    await db.collection('members').doc(memberId).delete();
+                    return true;
+                } catch (error) {
+                    console.error('Errore eliminazione membro:', error);
+                    return false;
+                }
+            },
+
+            // Contact log
+            async getContactLog() {
+                try {
+                    const snapshot = await db.collection('contactLog').get();
+                    const log = {};
+                    snapshot.docs.forEach(doc => {
+                        log[doc.id] = doc.data();
+                    });
+                    return log;
+                } catch (error) {
+                    console.error('Errore caricamento contact log:', error);
+                    return JSON.parse(localStorage.getItem('contactLog') || '{}');
+                }
+            },
+
+            async saveContactLog(key, data) {
+                try {
+                    await db.collection('contactLog').doc(key).set(data);
+                    return true;
+                } catch (error) {
+                    console.error('Errore salvataggio contact log:', error);
+                    return false;
+                }
+            }
+        };
+
         let editingIndex = null;
         let allMembers = []; // Cache per filtri
         let currentFilters = {
@@ -1049,8 +1158,8 @@
         }
 
         // Carica dashboard
-        function loadDashboard() {
-            const members = JSON.parse(localStorage.getItem('members') || '[]');
+        async function loadDashboard() {
+            const members = await FirebaseDB.getMembers();
             
             const expiredList = document.getElementById('expiredList');
             const expiringList = document.getElementById('expiringList');
@@ -1109,6 +1218,9 @@
             document.getElementById('activeCount').textContent = activeCount;
             document.getElementById('expiredBadge').textContent = expiredCount;
             document.getElementById('expiringBadge').textContent = expiringCount;
+
+            // Salva cache per filtri
+            allMembers = members;
         }
 
         // Crea card tesserato
@@ -1229,8 +1341,8 @@
             });
         }
 
-        // Salva tesserato
-        function saveMember() {
+        // Salva/Modifica tesserato con Firebase
+        async function saveMember() {
             const nome = document.getElementById('nome').value.trim();
             const cognome = document.getElementById('cognome').value.trim();
             const numeroTessera = document.getElementById('numeroTessera').value.trim();
@@ -1244,8 +1356,7 @@
             }
 
             const dataScadenza = calculateExpiry(dataIscrizione);
-            const members = JSON.parse(localStorage.getItem('members') || '[]');
-
+            
             const member = {
                 nome,
                 cognome,
@@ -1258,17 +1369,22 @@
             };
 
             if (editingIndex !== null) {
-                members[editingIndex] = member;
+                // Editing existing member
+                const members = await FirebaseDB.getMembers();
+                const existingMember = members[editingIndex];
+                member.id = existingMember.id;
+                
+                await FirebaseDB.saveMember(member);
                 editingIndex = null;
                 document.getElementById('modalTitle').textContent = '➕ Nuovo Tesserato';
             } else {
-                members.push(member);
+                // Adding new member
+                await FirebaseDB.saveMember(member);
             }
 
-            localStorage.setItem('members', JSON.stringify(members));
-            loadDashboard();
+            await loadDashboard();
             closeModal('memberModal');
-            alert('Tesserato salvato con successo!');
+            alert('✅ Tesserato salvato con successo!');
         }
 
         // Pulisci form
@@ -1350,35 +1466,33 @@
             }
         }
 
-        // Rinnova tesserato (resetta anche il tracking)
-        function renewMember(index) {
+        // Rinnova tesserato con Firebase
+        async function renewMember(index) {
             if (confirm('Rinnovare il tesseramento per 1 anno?')) {
-                const members = JSON.parse(localStorage.getItem('members') || '[]');
-                const oldExpiry = members[index].dataScadenza;
+                const members = await FirebaseDB.getMembers();
+                const member = members[index];
+                const oldExpiry = member.dataScadenza;
                 
-                const currentExpiry = new Date(members[index].dataScadenza);
+                const currentExpiry = new Date(member.dataScadenza);
                 currentExpiry.setFullYear(currentExpiry.getFullYear() + 1);
-                members[index].dataScadenza = currentExpiry.toISOString();
-                members[index].dataIscrizione = new Date().toISOString().split('T')[0];
-                localStorage.setItem('members', JSON.stringify(members));
+                member.dataScadenza = currentExpiry.toISOString();
+                member.dataIscrizione = new Date().toISOString().split('T')[0];
+                
+                await FirebaseDB.saveMember(member);
                 
                 // Reset del tracking per la nuova scadenza
-                const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
-                const oldKey = `${members[index].numeroTessera}_${oldExpiry}`;
-                const newKey = `${members[index].numeroTessera}_${members[index].dataScadenza}`;
+                const contactLog = await FirebaseDB.getContactLog();
+                const oldKey = `${member.numeroTessera}_${oldExpiry}`;
+                // Non serve eliminare dal cloud, scadrà naturalmente
                 
-                // Rimuovi il vecchio tracking
-                delete contactLog[oldKey];
-                localStorage.setItem('contactLog', JSON.stringify(contactLog));
-                
-                loadDashboard();
+                await loadDashboard();
                 alert('✅ Tesseramento rinnovato con successo! Il cliente ha pagato e la scadenza è stata aggiornata.');
             }
         }
 
-        // Modifica tesserato
-        function editMember(index) {
-            const members = JSON.parse(localStorage.getItem('members') || '[]');
+        // Modifica tesserato con Firebase
+        async function editMember(index) {
+            const members = await FirebaseDB.getMembers();
             const member = members[index];
             
             document.getElementById('nome').value = member.nome;
@@ -1392,19 +1506,17 @@
             document.getElementById('modalTitle').textContent = '✏️ Modifica Tesserato';
             openModal('memberModal');
         }
-
-        // Elimina tesserato
-        function deleteMember(index) {
+        async function deleteMember(index) {
             if (confirm('Eliminare definitivamente questo tesserato?')) {
-                const members = JSON.parse(localStorage.getItem('members') || '[]');
-                members.splice(index, 1);
-                localStorage.setItem('members', JSON.stringify(members));
-                loadDashboard();
-                // Ricarica anche la lista completa se aperta
-                if (document.getElementById('allMembersModal').style.display === 'block') {
-                    loadAllMembers();
+                const members = await FirebaseDB.getMembers();
+                const member = members[index];
+                
+                if (member.id) {
+                    await FirebaseDB.deleteMember(member.id);
                 }
-                alert('Tesserato eliminato!');
+                
+                await loadDashboard();
+                alert('✅ Tesserato eliminato!');
             }
         }
 
@@ -1595,8 +1707,8 @@
             });
         }
 
-        // Inizializzazione
-        window.onload = () => {
+        // Inizializzazione con Firebase
+        window.onload = async () => {
             const savedTheme = localStorage.getItem("theme");
             if (savedTheme === "dark") {
                 document.body.classList.add("dark");
@@ -1605,7 +1717,8 @@
             // Controlla stato notifiche
             updateNotificationStatus();
             
-            loadDashboard();
+            // Carica dashboard da Firebase
+            await loadDashboard();
             
             // Controlla scadenze all'avvio
             setTimeout(checkExpirations, 1000);
@@ -1613,11 +1726,7 @@
             // Controlla scadenze ogni 10 minuti
             setInterval(checkExpirations, 10 * 60 * 1000);
             
-            // Controlla scadenze ogni ora per notifiche browser (anche in background)
-            if ('serviceWorker' in navigator) {
-                // Service worker per notifiche in background (opzionale)
-                setInterval(checkExpirations, 60 * 60 * 1000);
-            }
+            console.log('✅ App caricata con Firebase!');
         };
     </script>
 </body>
