@@ -896,7 +896,37 @@
             }
         };
 
-        let editingIndex = null;
+        // Migrazione dati da localStorage a Firebase
+        async function migrateLocalDataToFirebase() {
+            const localMembers = JSON.parse(localStorage.getItem('members') || '[]');
+            
+            if (localMembers.length > 0) {
+                console.log(`📦 Trovati ${localMembers.length} tesserati in localStorage. Migrazione in corso...`);
+                
+                let migrated = 0;
+                for (const member of localMembers) {
+                    try {
+                        await FirebaseDB.saveMember(member);
+                        migrated++;
+                    } catch (error) {
+                        console.error('Errore migrazione membro:', member, error);
+                    }
+                }
+                
+                console.log(`✅ Migrazione completata: ${migrated}/${localMembers.length} tesserati`);
+                
+                // Chiedi se cancellare i dati locali
+                if (migrated === localMembers.length && confirm(`Migrazione completata! ${migrated} tesserati caricati su Firebase.\n\nVuoi cancellare i dati locali per usare solo Firebase?`)) {
+                    localStorage.removeItem('members');
+                    localStorage.removeItem('contactLog');
+                    console.log('🗑️ Dati locali rimossi');
+                }
+                
+                return true;
+            }
+            
+            return false;
+        }
         let allMembers = []; // Cache per filtri
         let currentFilters = {
             search: '',
@@ -1710,7 +1740,7 @@
             });
         }
 
-        // Inizializzazione con Firebase
+        // Inizializzazione con Firebase e migrazione
         window.onload = async () => {
             const savedTheme = localStorage.getItem("theme");
             if (savedTheme === "dark") {
@@ -1719,6 +1749,9 @@
             
             // Controlla stato notifiche
             updateNotificationStatus();
+            
+            // Tenta migrazione dati locali
+            const hasMigrated = await migrateLocalDataToFirebase();
             
             // Carica dashboard da Firebase
             await loadDashboard();
@@ -1731,6 +1764,8 @@
             
             console.log('✅ App caricata con Firebase!');
         };
+
+        let editingIndex = null;
     </script>
 </body>
 </html>
