@@ -40,7 +40,6 @@
             --accent: #f0f0f0;
         }
 
-        /* Miglioramenti Mobile */
         body {
             font-family: 'Poppins', sans-serif;
             margin: 0;
@@ -331,6 +330,7 @@
             font-size: 1rem;
             background: var(--bg);
             transition: border-color 0.3s;
+            color: var(--text);
         }
 
         .search-input:focus {
@@ -389,6 +389,8 @@
             background: linear-gradient(135deg, #ff9800, #f57c00);
             color: white;
         }
+
+        .floating-menu {
             position: fixed;
             bottom: 2rem;
             right: 2rem;
@@ -460,6 +462,7 @@
             font-weight: 600;
             margin-top: 1rem;
             display: block;
+            color: var(--text);
         }
 
         input, textarea, select {
@@ -510,6 +513,24 @@
             text-align: center;
             border-radius: 8px;
             margin: 1rem 0;
+        }
+
+        .contacted-badge {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            display: inline-block;
+        }
+
+        .contacted-info {
+            font-size: 0.75rem;
+            color: #4caf50;
+            opacity: 0.8;
+            margin-top: 0.3rem;
         }
 
         @keyframes fadeIn {
@@ -613,11 +634,6 @@
                 <div class="header-btn-icon">➕</div>
                 <div class="header-btn-text">Nuovo Tesserato</div>
             </button>
-            <button class="header-btn" onclick="cleanDuplicates()" title="Pulisci duplicati" style="background: rgba(255,0,0,0.3);">
-                <div class="header-btn-icon">🧹</div>
-                <div class="header-btn-text">Pulisci</div>
-            </button>
-                <div class="header-btn-icon">🌙</div>
             <button class="header-btn" onclick="toggleTheme()" title="Cambia tema">
                 <div class="header-btn-icon">🌙</div>
                 <div class="header-btn-text">Tema</div>
@@ -730,7 +746,7 @@
 
         <!-- Risultati ricerca (nascosto inizialmente) -->
         <div id="searchResults" style="display: none;">
-            <div class="card" style="padding: 1.5rem;">
+            <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
                 <h2>🔍 Risultati Ricerca</h2>
                 <div id="searchResultsList"></div>
             </div>
@@ -769,28 +785,6 @@
         </div>
     </div>
 
-    <!-- Modal Strumenti -->
-    <div id="toolsModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('toolsModal')">&times;</span>
-            <h2>🛠️ Strumenti</h2>
-            
-            <h3>📥 Import CSV</h3>
-            <div class="csv-upload">
-                <input type="file" id="csvFile" accept=".csv" onchange="handleCSV(this)">
-                <p style="margin: 0.5rem 0; font-size: 0.9rem;">Carica file CSV CSEN</p>
-            </div>
-            
-            <h3>📋 Visualizza Tutti</h3>
-            <p style="margin: 0.5rem 0; font-size: 0.9rem; opacity: 0.8;">Oppure clicca sul numero "Totali" nelle statistiche sopra</p>
-            <button onclick="openModal('allMembersModal')" style="width: 100%;">👥 Vedi Tutti i Tesserati</button>
-            
-            <div style="text-align: center; margin-top: 1.5rem;">
-                <button onclick="closeModal('toolsModal')" class="secondary">❌ Chiudi</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Modal Lista Completa -->
     <div id="allMembersModal" class="modal">
         <div class="modal-content" style="max-width: 800px;">
@@ -804,7 +798,7 @@
     </div>
 
     <script>
-        // CONFIGURAZIONE FIREBASE - Dati reali dal tuo progetto
+        // CONFIGURAZIONE FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyC-s8VuHiNx2mnWvUynFa7eYj4r9LHC5LQ",
             authDomain: "reminderpush.firebaseapp.com",
@@ -819,12 +813,11 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // Database helper functions con debug
+        // Database helper functions
         const FirebaseDB = {
-            // Carica membri
             async getMembers() {
                 try {
-                    console.log('🔥 Tentativo connessione Firebase...');
+                    console.log('🔥 Caricamento dati da Firebase...');
                     const snapshot = await db.collection('members').get();
                     console.log('✅ Firebase connesso! Documenti trovati:', snapshot.docs.length);
                     return snapshot.docs.map(doc => ({
@@ -834,12 +827,10 @@
                 } catch (error) {
                     console.error('❌ Errore Firebase:', error);
                     console.log('🔄 Usando localStorage come fallback...');
-                    // Fallback al localStorage se Firebase non funziona
                     return JSON.parse(localStorage.getItem('members') || '[]');
                 }
             },
 
-            // Salva membro
             async saveMember(member) {
                 try {
                     if (member.id) {
@@ -850,7 +841,6 @@
                     return true;
                 } catch (error) {
                     console.error('Errore salvataggio membro:', error);
-                    // Fallback al localStorage
                     const members = JSON.parse(localStorage.getItem('members') || '[]');
                     if (member.id) {
                         const index = members.findIndex(m => m.id === member.id);
@@ -864,7 +854,6 @@
                 }
             },
 
-            // Elimina membro
             async deleteMember(memberId) {
                 try {
                     await db.collection('members').doc(memberId).delete();
@@ -875,7 +864,6 @@
                 }
             },
 
-            // Contact log
             async getContactLog() {
                 try {
                     const snapshot = await db.collection('contactLog').get();
@@ -901,18 +889,16 @@
             }
         };
 
-        // Migrazione dati da localStorage a Firebase (con controllo duplicati)
+        // Migrazione dati da localStorage a Firebase
         async function migrateLocalDataToFirebase() {
             const localMembers = JSON.parse(localStorage.getItem('members') || '[]');
             
             if (localMembers.length > 0) {
                 console.log(`📦 Trovati ${localMembers.length} tesserati in localStorage. Controllo duplicati...`);
                 
-                // Carica tesserati esistenti da Firebase
                 const existingMembers = await FirebaseDB.getMembers();
                 const existingTessere = new Set(existingMembers.map(m => m.numeroTessera));
                 
-                // Filtra solo i nuovi (non duplicati)
                 const newMembers = localMembers.filter(member => !existingTessere.has(member.numeroTessera));
                 
                 if (newMembers.length === 0) {
@@ -944,48 +930,14 @@
             return false;
         }
 
-        // Funzione per pulire duplicati esistenti
-        async function cleanDuplicates() {
-            console.log('🧹 Pulizia duplicati in corso...');
-            const members = await FirebaseDB.getMembers();
-            
-            // Raggruppa per numero tessera
-            const groups = {};
-            members.forEach(member => {
-                if (!groups[member.numeroTessera]) {
-                    groups[member.numeroTessera] = [];
-                }
-                groups[member.numeroTessera].push(member);
-            });
-            
-            // Trova duplicati
-            let duplicatesRemoved = 0;
-            for (const tessera in groups) {
-                const group = groups[tessera];
-                if (group.length > 1) {
-                    // Mantieni solo il primo, elimina gli altri
-                    for (let i = 1; i < group.length; i++) {
-                        await FirebaseDB.deleteMember(group[i].id);
-                        duplicatesRemoved++;
-                    }
-                }
-            }
-            
-            if (duplicatesRemoved > 0) {
-                console.log(`✅ Rimossi ${duplicatesRemoved} duplicati`);
-                alert(`🧹 Pulizia completata! Rimossi ${duplicatesRemoved} duplicati.`);
-                await loadDashboard();
-            } else {
-                console.log('✅ Nessun duplicato trovato');
-            }
-        }
-        let allMembers = []; // Cache per filtri
+        let allMembers = [];
         let currentFilters = {
             search: '',
             month: '',
             status: '',
             sort: 'expiry_asc'
         };
+        let editingIndex = null;
 
         // Notifiche Browser
         function requestNotifications() {
@@ -1058,7 +1010,6 @@
             
             currentFilters = { search: searchTerm, month: monthFilter, status: statusFilter, sort: sortFilter };
             
-            // Se c'è ricerca o filtri attivi, mostra risultati ricerca
             if (searchTerm || monthFilter || statusFilter) {
                 showSearchResults();
             } else {
@@ -1070,10 +1021,8 @@
             document.getElementById('mainDashboard').style.display = 'none';
             document.getElementById('searchResults').style.display = 'block';
             
-            const members = JSON.parse(localStorage.getItem('members') || '[]');
-            let filteredMembers = members.map((member, index) => ({...member, index}));
+            let filteredMembers = allMembers.map((member, index) => ({...member, index}));
             
-            // Applica filtri
             if (currentFilters.search) {
                 filteredMembers = filteredMembers.filter(member => 
                     member.nome.toLowerCase().includes(currentFilters.search) ||
@@ -1101,7 +1050,6 @@
                 });
             }
             
-            // Applica ordinamento
             filteredMembers.sort((a, b) => {
                 switch (currentFilters.sort) {
                     case 'expiry_asc':
@@ -1119,7 +1067,6 @@
                 }
             });
             
-            // Mostra risultati
             const resultsList = document.getElementById('searchResultsList');
             resultsList.innerHTML = '';
             
@@ -1156,21 +1103,10 @@
                                 ${member.whatsapp ? `📱 ${member.whatsapp}` : ''}
                             </small>
                         </div>
-                        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem;">
-                            <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                <div style="display: flex; flex-direction: column; align-items: center;">
-                                    <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Promemoria</small>
-                                    <button onclick="sendAlert(${member.index})" class="warning" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">📩</button>
-                                </div>
-                                <div style="display: flex; flex-direction: column; align-items: center;">
-                                    <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Rinnova</small>
-                                    <button onclick="renewMember(${member.index})" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">🔄</button>
-                                </div>
-                                <div style="display: flex; flex-direction: column; align-items: center;">
-                                    <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Modifica</small>
-                                    <button onclick="editMember(${member.index})" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">✏️</button>
-                                </div>
-                            </div>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                            <button onclick="sendAlert(${member.index})" class="warning" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">📩</button>
+                            <button onclick="renewMember(${member.index})" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">🔄</button>
+                            <button onclick="editMember(${member.index})" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">✏️</button>
                         </div>
                     </div>
                 `;
@@ -1194,19 +1130,17 @@
             showMainDashboard();
         }
 
-        // Funzione per calcolare la scadenza
+        // Funzioni utilità
         function calculateExpiry(inscriptionDate) {
             const date = new Date(inscriptionDate);
             date.setFullYear(date.getFullYear() + 1);
             return date;
         }
 
-        // Funzione per formattare la data
         function formatDate(date) {
             return new Date(date).toLocaleDateString('it-IT');
         }
 
-        // Controlli scadenza
         function isExpiring(expiryDate, days = 15) {
             const now = new Date();
             const expiry = new Date(expiryDate);
@@ -1245,6 +1179,7 @@
         // Carica dashboard
         async function loadDashboard() {
             const members = await FirebaseDB.getMembers();
+            allMembers = members;
             
             const expiredList = document.getElementById('expiredList');
             const expiringList = document.getElementById('expiringList');
@@ -1275,7 +1210,6 @@
                 }
             });
 
-            // Popola sezione scaduti
             if (expiredMembers.length === 0) {
                 expiredList.innerHTML = '<div class="empty-state">✅ Nessun tesserato scaduto</div>';
             } else {
@@ -1285,7 +1219,6 @@
                 });
             }
 
-            // Popola sezione in scadenza
             if (expiringMembers.length === 0) {
                 expiringList.innerHTML = '<div class="empty-state">✅ Nessuna scadenza imminente</div>';
             } else {
@@ -1296,19 +1229,14 @@
                 });
             }
 
-            // Aggiorna statistiche
             document.getElementById('totalMembers').textContent = totalMembers;
             document.getElementById('expiredCount').textContent = expiredCount;
             document.getElementById('expiringCount').textContent = expiringCount;
             document.getElementById('activeCount').textContent = activeCount;
             document.getElementById('expiredBadge').textContent = expiredCount;
             document.getElementById('expiringBadge').textContent = expiringCount;
-
-            // Salva cache per filtri
-            allMembers = members;
         }
 
-        // Crea card tesserato
         function createMemberCard(member, isExpired) {
             const div = document.createElement('div');
             div.className = 'member-card';
@@ -1316,14 +1244,9 @@
             const daysLeft = getDaysLeft(member.dataScadenza);
             const timeText = isExpired ? 'SCADUTO' : `${daysLeft} giorni`;
             
-            // Controlla se è stato contattato
             const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
             const memberKey = `${member.numeroTessera}_${member.dataScadenza}`;
             const isContacted = contactLog[memberKey];
-            
-            if (isContacted) {
-                div.classList.add('contacted');
-            }
             
             const contactedBadge = isContacted ? `<div class="contacted-badge">✓ Contattato</div>` : '';
             const contactedInfo = isContacted ? `<div class="contacted-info">Promemoria inviato il ${formatDate(isContacted.date)} alle ${isContacted.time}</div>` : '';
@@ -1352,7 +1275,7 @@
                     </div>
                     ${isContacted ? `
                     <div style="display: flex; flex-direction: column; align-items: center;">
-                        <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Reset Invio</small>
+                        <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Reset</small>
                         <button onclick="resetContactStatus('${memberKey}')" style="background: #ffc107; font-size: 0.8rem;">🔄</button>
                     </div>
                     ` : ''}
@@ -1362,19 +1285,16 @@
             return div;
         }
 
-        // Carica tutti i tesserati
         function loadAllMembers() {
-            const members = JSON.parse(localStorage.getItem('members') || '[]');
             const list = document.getElementById('allMembersList');
             list.innerHTML = '';
 
-            if (members.length === 0) {
+            if (allMembers.length === 0) {
                 list.innerHTML = '<div style="text-align: center; padding: 2rem;">📭 Nessun tesserato. Importa il CSV per iniziare.</div>';
                 return;
             }
 
-            // Ordina per scadenza
-            const sortedMembers = members.map((member, index) => ({...member, index}))
+            const sortedMembers = allMembers.map((member, index) => ({...member, index}))
                 .sort((a, b) => new Date(a.dataScadenza) - new Date(b.dataScadenza));
 
             sortedMembers.forEach(member => {
@@ -1402,22 +1322,10 @@
                             <small>Scadenza: ${formatDate(member.dataScadenza)} - <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span></small>
                         </div>
                         <div style="display: flex; gap: 0.5rem;">
-                            <div style="display: flex; flex-direction: column; align-items: center;">
-                                <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Promemoria</small>
-                                <button onclick="sendAlert(${member.index})" class="warning" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">📩</button>
-                            </div>
-                            <div style="display: flex; flex-direction: column; align-items: center;">
-                                <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Rinnova</small>
-                                <button onclick="renewMember(${member.index})" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">🔄</button>
-                            </div>
-                            <div style="display: flex; flex-direction: column; align-items: center;">
-                                <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Modifica</small>
-                                <button onclick="editMember(${member.index})" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">✏️</button>
-                            </div>
-                            <div style="display: flex; flex-direction: column; align-items: center;">
-                                <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Elimina</small>
-                                <button onclick="deleteMember(${member.index})" class="danger" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">🗑️</button>
-                            </div>
+                            <button onclick="sendAlert(${member.index})" class="warning" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">📩</button>
+                            <button onclick="renewMember(${member.index})" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">🔄</button>
+                            <button onclick="editMember(${member.index})" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">✏️</button>
+                            <button onclick="deleteMember(${member.index})" class="danger" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">🗑️</button>
                         </div>
                     </div>
                 `;
@@ -1426,7 +1334,6 @@
             });
         }
 
-        // Salva/Modifica tesserato con Firebase
         async function saveMember() {
             const nome = document.getElementById('nome').value.trim();
             const cognome = document.getElementById('cognome').value.trim();
@@ -1454,16 +1361,13 @@
             };
 
             if (editingIndex !== null) {
-                // Editing existing member
-                const members = await FirebaseDB.getMembers();
-                const existingMember = members[editingIndex];
+                const existingMember = allMembers[editingIndex];
                 member.id = existingMember.id;
                 
                 await FirebaseDB.saveMember(member);
                 editingIndex = null;
                 document.getElementById('modalTitle').textContent = '➕ Nuovo Tesserato';
             } else {
-                // Adding new member
                 await FirebaseDB.saveMember(member);
             }
 
@@ -1472,7 +1376,6 @@
             alert('✅ Tesserato salvato con successo!');
         }
 
-        // Pulisci form
         function clearForm() {
             document.getElementById('nome').value = '';
             document.getElementById('cognome').value = '';
@@ -1484,12 +1387,9 @@
             document.getElementById('modalTitle').textContent = '➕ Nuovo Tesserato';
         }
 
-        // Invia promemoria con tracking
         function sendAlert(index) {
-            const members = JSON.parse(localStorage.getItem('members') || '[]');
-            const member = members[index];
+            const member = allMembers[index];
             
-            // Controlla se già contattato oggi
             const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
             const memberKey = `${member.numeroTessera}_${member.dataScadenza}`;
             const today = new Date().toDateString();
@@ -1503,7 +1403,6 @@
             const messageToClient = `Ciao ${member.nome}, il tuo tesseramento e copertura assicurativa (n. ${member.numeroTessera}) scadono il ${formatDate(member.dataScadenza)}. Contattaci per il rinnovo!`;
             const messageToMe = `ALERT: Il tesserato ${member.nome} ${member.cognome} (n. ${member.numeroTessera}) scade il ${formatDate(member.dataScadenza)}`;
 
-            // Invia a cliente
             if (member.whatsapp && member.whatsapp.length > 5) {
                 const clientLink = `https://wa.me/${member.whatsapp}?text=${encodeURIComponent(messageToClient)}`;
                 window.open(clientLink, '_blank');
@@ -1514,13 +1413,11 @@
                 window.open(emailLink, '_blank');
             }
 
-            // Invia a me
             setTimeout(() => {
                 const myLink = `https://wa.me/3478881515?text=${encodeURIComponent(messageToMe)}`;
                 window.open(myLink, '_blank');
             }, 1000);
             
-            // Segna come contattato
             const now = new Date();
             contactLog[memberKey] = {
                 date: now.toDateString(),
@@ -1529,18 +1426,15 @@
             };
             localStorage.setItem('contactLog', JSON.stringify(contactLog));
             
-            // Ricarica dashboard per mostrare il badge "contattato"
             loadDashboard();
             
             if ((!member.whatsapp || member.whatsapp.length <= 5) && (!member.email || !member.email.includes('@'))) {
                 alert(`Attenzione: ${member.nome} ${member.cognome} non ha contatti validi!`);
             } else {
-                // Mostra conferma
                 alert(`✅ Promemoria inviato a ${member.nome} ${member.cognome}!`);
             }
         }
 
-        // Reset stato contatto
         function resetContactStatus(memberKey) {
             if (confirm('Vuoi resettare lo stato "contattato" per permettere un nuovo invio promemoria?')) {
                 const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
@@ -1551,11 +1445,9 @@
             }
         }
 
-        // Rinnova tesserato con Firebase
         async function renewMember(index) {
             if (confirm('Rinnovare il tesseramento per 1 anno?')) {
-                const members = await FirebaseDB.getMembers();
-                const member = members[index];
+                const member = allMembers[index];
                 const oldExpiry = member.dataScadenza;
                 
                 const currentExpiry = new Date(member.dataScadenza);
@@ -1565,20 +1457,13 @@
                 
                 await FirebaseDB.saveMember(member);
                 
-                // Reset del tracking per la nuova scadenza
-                const contactLog = await FirebaseDB.getContactLog();
-                const oldKey = `${member.numeroTessera}_${oldExpiry}`;
-                // Non serve eliminare dal cloud, scadrà naturalmente
-                
                 await loadDashboard();
-                alert('✅ Tesseramento rinnovato con successo! Il cliente ha pagato e la scadenza è stata aggiornata.');
+                alert('✅ Tesseramento rinnovato con successo!');
             }
         }
 
-        // Modifica tesserato con Firebase
         async function editMember(index) {
-            const members = await FirebaseDB.getMembers();
-            const member = members[index];
+            const member = allMembers[index];
             
             document.getElementById('nome').value = member.nome;
             document.getElementById('cognome').value = member.cognome;
@@ -1591,10 +1476,10 @@
             document.getElementById('modalTitle').textContent = '✏️ Modifica Tesserato';
             openModal('memberModal');
         }
+
         async function deleteMember(index) {
             if (confirm('Eliminare definitivamente questo tesserato?')) {
-                const members = await FirebaseDB.getMembers();
-                const member = members[index];
+                const member = allMembers[index];
                 
                 if (member.id) {
                     await FirebaseDB.deleteMember(member.id);
@@ -1605,16 +1490,14 @@
             }
         }
 
-        // Gestione CSV
         function handleCSV(input) {
             const file = input.files[0];
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 const csv = e.target.result;
                 const lines = csv.split('\n');
-                const members = JSON.parse(localStorage.getItem('members') || '[]');
                 
                 let imported = 0;
                 
@@ -1639,7 +1522,7 @@
                         const email = fields[14];
                         
                         if (nome && cognome && dataInserimento && numeroTessera) {
-                            const exists = members.some(m => m.numeroTessera === numeroTessera);
+                            const exists = allMembers.some(m => m.numeroTessera === numeroTessera);
                             if (exists) continue;
                             
                             let formattedDate = dataInserimento;
@@ -1651,7 +1534,7 @@
                             const dataScadenza = calculateExpiry(formattedDate);
                             const cleanPhone = telefono ? telefono.replace(/\D/g, '') : '';
                             
-                            members.push({
+                            const member = {
                                 nome,
                                 cognome,
                                 numeroTessera,
@@ -1661,24 +1544,23 @@
                                 whatsapp: cleanPhone || '',
                                 status: 'attivo',
                                 associazione: associazione || ''
-                            });
+                            };
+                            
+                            await FirebaseDB.saveMember(member);
                             imported++;
                         }
                     }
                 }
                 
-                localStorage.setItem('members', JSON.stringify(members));
-                loadDashboard();
-                closeModal('toolsModal');
+                await loadDashboard();
                 alert(`Importati ${imported} tesserati dal CSV CSEN!`);
                 input.value = '';
             };
             reader.readAsText(file);
         }
 
-        // Popup automatici per scadenze
         function showExpirationPopup(member, daysLeft) {
-            if (document.querySelector('.popup-overlay')) return; // Evita popup multipli
+            if (document.querySelector('.popup-overlay')) return;
             
             const overlay = document.createElement('div');
             overlay.className = 'popup-overlay';
@@ -1728,7 +1610,6 @@
             
             document.body.appendChild(overlay);
             
-            // Segna come mostrato
             const lastShown = JSON.parse(localStorage.getItem('popupShown') || '{}');
             lastShown[member.numeroTessera] = new Date().toDateString();
             localStorage.setItem('popupShown', JSON.stringify(lastShown));
@@ -1741,25 +1622,21 @@
             }
         }
 
-        // Controllo automatico scadenze con notifiche browser
         function checkExpirations() {
-            const members = JSON.parse(localStorage.getItem('members') || '[]');
             const lastShown = JSON.parse(localStorage.getItem('popupShown') || '{}');
             const lastNotified = JSON.parse(localStorage.getItem('lastNotified') || '{}');
             const today = new Date().toDateString();
             
-            members.forEach((member, index) => {
+            allMembers.forEach((member, index) => {
                 const daysLeft = getDaysLeft(member.dataScadenza);
                 
-                // Popup (solo se app è aperta)
                 if ((daysLeft <= 7 || daysLeft <= 0) && lastShown[member.numeroTessera] !== today) {
                     setTimeout(() => {
                         showExpirationPopup({...member, index}, daysLeft);
                     }, 2000);
-                    return; // Mostra solo un popup alla volta
+                    return;
                 }
                 
-                // Notifiche browser (anche app chiusa se autorizzate)
                 if (Notification.permission === 'granted') {
                     const shouldNotify = (daysLeft === 7 || daysLeft === 3 || daysLeft === 1 || daysLeft <= 0) && 
                                        lastNotified[member.numeroTessera] !== today;
@@ -1767,7 +1644,6 @@
                     if (shouldNotify) {
                         sendBrowserNotification({...member, index}, daysLeft);
                         
-                        // Segna come notificato oggi
                         lastNotified[member.numeroTessera] = today;
                         localStorage.setItem('lastNotified', JSON.stringify(lastNotified));
                     }
@@ -1775,14 +1651,12 @@
             });
         }
 
-        // Tema
         function toggleTheme() {
             document.body.classList.toggle("dark");
             const current = document.body.classList.contains("dark") ? "dark" : "light";
             localStorage.setItem("theme", current);
         }
 
-        // Click fuori modal per chiudere
         window.onclick = function(event) {
             const modals = document.querySelectorAll('.modal');
             modals.forEach(modal => {
@@ -1792,32 +1666,24 @@
             });
         }
 
-        // Inizializzazione con Firebase e migrazione
         window.onload = async () => {
             const savedTheme = localStorage.getItem("theme");
             if (savedTheme === "dark") {
                 document.body.classList.add("dark");
             }
             
-            // Controlla stato notifiche
             updateNotificationStatus();
             
-            // Tenta migrazione dati locali
             const hasMigrated = await migrateLocalDataToFirebase();
             
-            // Carica dashboard da Firebase
             await loadDashboard();
             
-            // Controlla scadenze all'avvio
             setTimeout(checkExpirations, 1000);
             
-            // Controlla scadenze ogni 10 minuti
             setInterval(checkExpirations, 10 * 60 * 1000);
             
             console.log('✅ App caricata con Firebase!');
         };
-
-        let editingIndex = null;
     </script>
 </body>
 </html>
