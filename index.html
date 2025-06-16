@@ -814,18 +814,21 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // Database helper functions
+        // Database helper functions con debug
         const FirebaseDB = {
             // Carica membri
             async getMembers() {
                 try {
+                    console.log('🔥 Tentativo connessione Firebase...');
                     const snapshot = await db.collection('members').get();
+                    console.log('✅ Firebase connesso! Documenti trovati:', snapshot.docs.length);
                     return snapshot.docs.map(doc => ({
                         id: doc.id,
                         ...doc.data()
                     }));
                 } catch (error) {
-                    console.error('Errore caricamento membri:', error);
+                    console.error('❌ Errore Firebase:', error);
+                    console.log('🔄 Usando localStorage come fallback...');
                     // Fallback al localStorage se Firebase non funziona
                     return JSON.parse(localStorage.getItem('members') || '[]');
                 }
