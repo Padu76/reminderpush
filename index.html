@@ -2,84 +2,562 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>ReminderPush v0.6</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Gestione Tesserati v1.0</title>
+    <style>
+        :root {
+            --bg: #f7f9fb;
+            --text: #333;
+            --card-bg: #fff;
+            --primary: #25D366;
+            --secondary: #ccc;
+            --button-bg: #25D366;
+            --button-text: #fff;
+            --warning: #ff9800;
+            --danger: #f44336;
+        }
+
+        body.dark {
+            --bg: #121212;
+            --text: #e0e0e0;
+            --card-bg: #1f1f1f;
+            --primary: #25D366;
+            --secondary: #333;
+            --button-bg: #25D366;
+            --button-text: #fff;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            color: var(--text);
+            transition: background 0.3s, color 0.3s;
+        }
+
+        header {
+            background: var(--primary);
+            color: var(--button-text);
+            padding: 1rem;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #themeToggle {
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            color: white;
+            cursor: pointer;
+        }
+
+        main {
+            padding: 1rem;
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+        }
+
+        label {
+            font-weight: 600;
+            margin-top: 1rem;
+            display: block;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 0.25rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--secondary);
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            background: var(--card-bg);
+            color: var(--text);
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 0.6rem 1rem;
+            border: none;
+            background-color: var(--button-bg);
+            color: var(--button-text);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 0.25rem;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button.warning {
+            background-color: var(--warning);
+        }
+
+        button.danger {
+            background-color: var(--danger);
+        }
+
+        #filters {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            background: var(--card-bg);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 6px solid var(--primary);
+            border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        }
+
+        li.expiring {
+            border-left-color: var(--warning);
+            background: linear-gradient(90deg, var(--card-bg), rgba(255, 152, 0, 0.1));
+        }
+
+        li.expired {
+            border-left-color: var(--danger);
+            background: linear-gradient(90deg, var(--card-bg), rgba(244, 67, 54, 0.1));
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .csv-upload {
+            border: 2px dashed var(--secondary);
+            padding: 2rem;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media screen and (max-width: 600px) {
+            body {
+                font-size: 1rem;
+            }
+
+            header {
+                flex-direction: column;
+                font-size: 1.25rem;
+            }
+
+            #themeToggle {
+                margin-top: 0.5rem;
+            }
+
+            button {
+                width: 100%;
+                margin: 0.5rem 0;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
     <header>
-        <h1>📌 ReminderPush</h1>
+        <h1>🛡️ Gestione Tesserati</h1>
         <button id="themeToggle" onclick="toggleTheme()">🌙</button>
     </header>
+    
     <main>
-        <section class="card" id="form">
-            <h2>Crea o Modifica un Promemoria</h2>
-            <label for="title">Titolo</label>
-            <input type="text" id="title" placeholder="Es. Invia report...">
-            <label for="description">Descrizione</label>
-            <textarea id="description" placeholder="Dettagli del promemoria..."></textarea>
-            <label for="deadline">Scadenza</label>
-            <input type="datetime-local" id="deadline">
-            <label for="recipient">Destinatari (WhatsApp o Email separati da virgole)</label>
-            <textarea id="recipient" placeholder="Es. 39333..., test@email.com"></textarea>
-            <button onclick="sendReminder()">➕ Salva / Invia</button>
+        <!-- Statistiche -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalMembers">0</div>
+                <div>Tesserati Totali</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="expiringCount">0</div>
+                <div>In Scadenza (30gg)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="expiredCount">0</div>
+                <div>Scaduti</div>
+            </div>
+        </div>
+
+        <!-- Import CSV -->
+        <section class="card">
+            <h2>📥 Import CSV Tesserati</h2>
+            <div class="csv-upload">
+                <input type="file" id="csvFile" accept=".csv" onchange="handleCSV(this)">
+                <p>Carica file CSV con colonne: nome, cognome, data_iscrizione, numero_tessera</p>
+            </div>
         </section>
 
+        <!-- Form Nuovo Tesserato -->
+        <section class="card" id="memberForm">
+            <h2 id="formTitle">➕ Nuovo Tesserato</h2>
+            <label for="nome">Nome</label>
+            <input type="text" id="nome" placeholder="Mario">
+            
+            <label for="cognome">Cognome</label>
+            <input type="text" id="cognome" placeholder="Rossi">
+            
+            <label for="numeroTessera">Numero Tessera</label>
+            <input type="text" id="numeroTessera" placeholder="T001">
+            
+            <label for="dataIscrizione">Data Iscrizione</label>
+            <input type="date" id="dataIscrizione">
+            
+            <label for="email">Email</label>
+            <input type="email" id="email" placeholder="mario.rossi@email.com">
+            
+            <label for="whatsapp">WhatsApp (solo numeri)</label>
+            <input type="text" id="whatsapp" placeholder="393331234567">
+            
+            <button onclick="saveMember()">💾 Salva Tesserato</button>
+            <button onclick="clearForm()" style="background: var(--secondary);">🗑️ Pulisci</button>
+        </section>
+
+        <!-- Filtri -->
         <section id="filters">
-            <button onclick="setFilter('all', this)">📋 Tutti</button>
-            <button onclick="setFilter('pending', this)">⏳ In sospeso</button>
-            <button onclick="setFilter('done', this)">✅ Completati</button>
+            <button onclick="setFilter('all')">📋 Tutti</button>
+            <button onclick="setFilter('active')">✅ Attivi</button>
+            <button onclick="setFilter('expiring')">⚠️ In Scadenza</button>
+            <button onclick="setFilter('expired')">❌ Scaduti</button>
         </section>
 
-        <section class="card" id="history">
-            <h2>Cronologia</h2>
-            <ul id="reminderList"></ul>
+        <!-- Lista Tesserati -->
+        <section class="card">
+            <h2>👥 Lista Tesserati</h2>
+            <ul id="membersList"></ul>
         </section>
     </main>
 
-    <!-- Firebase v9 SDK - Metodo tradizionale -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    
     <script>
-        console.log('🚀 Caricamento Firebase compat...');
-        
-        // Firebase config
-        const firebaseConfig = {
-            apiKey: "AIzaSyC-s8VuHiNx2mnWvUynFa7eYj4r9LHC5LQ",
-            authDomain: "reminderpush.firebaseapp.com",
-            projectId: "reminderpush",
-            storageBucket: "reminderpush.firebasestorage.app",
-            messagingSenderId: "533477700960",
-            appId: "1:533477700960:web:94d90a7e327ec2912d1a05",
-            measurementId: "G-RZ3Y5EV1DX"
-        };
+        let filter = 'all';
+        let editingIndex = null;
 
-        try {
-            // Initialize Firebase
-            firebase.initializeApp(firebaseConfig);
-            const db = firebase.firestore();
-            
-            console.log('✅ Firebase inizializzato con compat');
-            console.log('✅ Firestore ottenuto');
-
-            // Test connessione
-            db.collection('reminders');
-            console.log('✅ Collection accessibile');
-
-            // Esponi globalmente
-            window.db = db;
-            window.firebase = firebase;
-            
-            console.log('🎉 FIREBASE COMPAT PRONTO!');
-
-        } catch (error) {
-            console.error('❌ Errore Firebase compat:', error);
-            alert('Errore Firebase: ' + error.message);
-            window.db = null;
-            window.firebase = null;
+        // Funzione per calcolare la scadenza (data iscrizione + 1 anno)
+        function calculateExpiry(inscriptionDate) {
+            const date = new Date(inscriptionDate);
+            date.setFullYear(date.getFullYear() + 1);
+            return date;
         }
+
+        // Funzione per formattare la data
+        function formatDate(date) {
+            return new Date(date).toLocaleDateString('it-IT');
+        }
+
+        // Funzione per controllare se un tesserato è in scadenza
+        function isExpiring(expiryDate, days = 30) {
+            const now = new Date();
+            const expiry = new Date(expiryDate);
+            const diffTime = expiry - now;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays <= days && diffDays > 0;
+        }
+
+        // Funzione per controllare se un tesserato è scaduto
+        function isExpired(expiryDate) {
+            const now = new Date();
+            const expiry = new Date(expiryDate);
+            return expiry < now;
+        }
+
+        // Salva/Modifica tesserato
+        function saveMember() {
+            const nome = document.getElementById('nome').value.trim();
+            const cognome = document.getElementById('cognome').value.trim();
+            const numeroTessera = document.getElementById('numeroTessera').value.trim();
+            const dataIscrizione = document.getElementById('dataIscrizione').value;
+            const email = document.getElementById('email').value.trim();
+            const whatsapp = document.getElementById('whatsapp').value.trim();
+
+            if (!nome || !cognome || !numeroTessera || !dataIscrizione) {
+                alert('Compila tutti i campi obbligatori!');
+                return;
+            }
+
+            const dataScadenza = calculateExpiry(dataIscrizione);
+            const members = JSON.parse(localStorage.getItem('members') || '[]');
+
+            const member = {
+                nome,
+                cognome,
+                numeroTessera,
+                dataIscrizione,
+                dataScadenza: dataScadenza.toISOString(),
+                email,
+                whatsapp,
+                status: 'attivo'
+            };
+
+            if (editingIndex !== null) {
+                members[editingIndex] = member;
+                editingIndex = null;
+                document.getElementById('formTitle').textContent = '➕ Nuovo Tesserato';
+            } else {
+                members.push(member);
+            }
+
+            localStorage.setItem('members', JSON.stringify(members));
+            loadMembers();
+            clearForm();
+        }
+
+        // Pulisci form
+        function clearForm() {
+            document.getElementById('nome').value = '';
+            document.getElementById('cognome').value = '';
+            document.getElementById('numeroTessera').value = '';
+            document.getElementById('dataIscrizione').value = '';
+            document.getElementById('email').value = '';
+            document.getElementById('whatsapp').value = '';
+            editingIndex = null;
+            document.getElementById('formTitle').textContent = '➕ Nuovo Tesserato';
+        }
+
+        // Carica tesserati
+        function loadMembers() {
+            const members = JSON.parse(localStorage.getItem('members') || '[]');
+            const list = document.getElementById('membersList');
+            list.innerHTML = '';
+
+            let totalMembers = 0;
+            let expiringCount = 0;
+            let expiredCount = 0;
+
+            members.forEach((member, index) => {
+                const isExp = isExpired(member.dataScadenza);
+                const isExpiring30 = isExpiring(member.dataScadenza, 30);
+                
+                totalMembers++;
+                if (isExp) expiredCount++;
+                else if (isExpiring30) expiringCount++;
+
+                // Filtri
+                if (filter === 'active' && (isExp || isExpiring30)) return;
+                if (filter === 'expiring' && !isExpiring30) return;
+                if (filter === 'expired' && !isExp) return;
+
+                const li = document.createElement('li');
+                
+                // Aggiungi classi CSS per evidenziare scadenze
+                if (isExp) li.classList.add('expired');
+                else if (isExpiring30) li.classList.add('expiring');
+
+                const statusText = isExp ? '❌ Scaduto' : isExpiring30 ? '⚠️ In Scadenza' : '✅ Attivo';
+                const daysLeft = isExp ? 0 : Math.ceil((new Date(member.dataScadenza) - new Date()) / (1000 * 60 * 60 * 24));
+
+                li.innerHTML = `
+                    <strong>${member.nome} ${member.cognome}</strong> - Tessera: ${member.numeroTessera}<br>
+                    <small>Iscrizione: ${formatDate(member.dataIscrizione)} | Scadenza: ${formatDate(member.dataScadenza)}</small><br>
+                    <small>Email: ${member.email || 'Non fornita'} | WhatsApp: ${member.whatsapp || 'Non fornito'}</small><br>
+                    <small>Stato: ${statusText} ${!isExp && daysLeft <= 30 ? `(${daysLeft} giorni)` : ''}</small><br>
+                    <div style="margin-top: 0.5rem;">
+                        <button onclick="sendAlert(${index})" class="warning">📱 Invia Alert</button>
+                        <button onclick="renewMember(${index})" class="primary">🔄 Rinnova</button>
+                        <button onclick="editMember(${index})">✏️ Modifica</button>
+                        <button onclick="deleteMember(${index})" class="danger">🗑️ Elimina</button>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+
+            // Aggiorna statistiche
+            document.getElementById('totalMembers').textContent = totalMembers;
+            document.getElementById('expiringCount').textContent = expiringCount;
+            document.getElementById('expiredCount').textContent = expiredCount;
+        }
+
+        // Invia alert WhatsApp
+        function sendAlert(index) {
+            const members = JSON.parse(localStorage.getItem('members') || '[]');
+            const member = members[index];
+            
+            const messageToClient = `Ciao ${member.nome}, il tuo tesseramento (n. ${member.numeroTessera}) scade il ${formatDate(member.dataScadenza)}. Contattaci per il rinnovo!`;
+            const messageToMe = `ALERT: Il tesserato ${member.nome} ${member.cognome} (n. ${member.numeroTessera}) scade il ${formatDate(member.dataScadenza)}`;
+
+            // Invia a cliente (se ha WhatsApp)
+            if (member.whatsapp) {
+                const clientLink = `https://wa.me/${member.whatsapp}?text=${encodeURIComponent(messageToClient)}`;
+                window.open(clientLink, '_blank');
+            }
+
+            // Invia email a cliente (se ha email)
+            if (member.email) {
+                const emailLink = `mailto:${member.email}?subject=${encodeURIComponent('Rinnovo Tesseramento')}&body=${encodeURIComponent(messageToClient)}`;
+                window.open(emailLink, '_blank');
+            }
+
+            // Invia a me
+            const myWhatsApp = '3478881515';
+            const myLink = `https://wa.me/${myWhatsApp}?text=${encodeURIComponent(messageToMe)}`;
+            window.open(myLink, '_blank');
+        }
+
+        // Rinnova tesserato
+        function renewMember(index) {
+            if (confirm('Rinnovare il tesseramento per 1 anno?')) {
+                const members = JSON.parse(localStorage.getItem('members') || '[]');
+                const currentExpiry = new Date(members[index].dataScadenza);
+                currentExpiry.setFullYear(currentExpiry.getFullYear() + 1);
+                members[index].dataScadenza = currentExpiry.toISOString();
+                members[index].dataIscrizione = new Date().toISOString().split('T')[0];
+                localStorage.setItem('members', JSON.stringify(members));
+                loadMembers();
+                alert('Tesseramento rinnovato con successo!');
+            }
+        }
+
+        // Modifica tesserato
+        function editMember(index) {
+            const members = JSON.parse(localStorage.getItem('members') || '[]');
+            const member = members[index];
+            
+            document.getElementById('nome').value = member.nome;
+            document.getElementById('cognome').value = member.cognome;
+            document.getElementById('numeroTessera').value = member.numeroTessera;
+            document.getElementById('dataIscrizione').value = member.dataIscrizione;
+            document.getElementById('email').value = member.email || '';
+            document.getElementById('whatsapp').value = member.whatsapp || '';
+            
+            editingIndex = index;
+            document.getElementById('formTitle').textContent = '✏️ Modifica Tesserato';
+        }
+
+        // Elimina tesserato
+        function deleteMember(index) {
+            if (confirm('Eliminare definitivamente questo tesserato?')) {
+                const members = JSON.parse(localStorage.getItem('members') || '[]');
+                members.splice(index, 1);
+                localStorage.setItem('members', JSON.stringify(members));
+                loadMembers();
+            }
+        }
+
+        // Gestione CSV
+        function handleCSV(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const csv = e.target.result;
+                const lines = csv.split('\n');
+                const members = JSON.parse(localStorage.getItem('members') || '[]');
+                
+                let imported = 0;
+                
+                for (let i = 1; i < lines.length; i++) { // Salta header
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    
+                    const [nome, cognome, dataIscrizione, numeroTessera] = line.split(',').map(s => s.trim());
+                    
+                    if (nome && cognome && dataIscrizione && numeroTessera) {
+                        const dataScadenza = calculateExpiry(dataIscrizione);
+                        
+                        members.push({
+                            nome,
+                            cognome,
+                            numeroTessera,
+                            dataIscrizione,
+                            dataScadenza: dataScadenza.toISOString(),
+                            email: '',
+                            whatsapp: '',
+                            status: 'attivo'
+                        });
+                        imported++;
+                    }
+                }
+                
+                localStorage.setItem('members', JSON.stringify(members));
+                loadMembers();
+                alert(`Importati ${imported} tesserati dal CSV!`);
+            };
+            reader.readAsText(file);
+        }
+
+        // Filtri
+        function setFilter(f) {
+            filter = f;
+            loadMembers();
+        }
+
+        // Controllo automatico scadenze
+        function checkExpirations() {
+            const members = JSON.parse(localStorage.getItem('members') || '[]');
+            const today = new Date();
+            
+            members.forEach(member => {
+                const daysLeft = Math.ceil((new Date(member.dataScadenza) - today) / (1000 * 60 * 60 * 24));
+                
+                // Alert automatici (7, 15, 30 giorni)
+                if ([7, 15, 30].includes(daysLeft)) {
+                    console.log(`Alert: ${member.nome} ${member.cognome} scade tra ${daysLeft} giorni`);
+                    // Qui potresti aggiungere logica per inviare alert automatici
+                }
+            });
+        }
+
+        // Tema
+        function toggleTheme() {
+            document.body.classList.toggle("dark");
+            const current = document.body.classList.contains("dark") ? "dark" : "light";
+            localStorage.setItem("theme", current);
+        }
+
+        // Inizializzazione
+        window.onload = () => {
+            const savedTheme = localStorage.getItem("theme");
+            if (savedTheme === "dark") {
+                document.body.classList.add("dark");
+            }
+            loadMembers();
+            setInterval(checkExpirations, 60000); // Controlla ogni minuto
+        };
     </script>
-    <script src="script.js"></script>
 </body>
 </html>
