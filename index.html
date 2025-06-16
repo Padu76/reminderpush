@@ -636,21 +636,27 @@
             const messageToMe = `ALERT: Il tesserato ${member.nome} ${member.cognome} (n. ${member.numeroTessera}) scade il ${formatDate(member.dataScadenza)}`;
 
             // Invia a cliente (se ha WhatsApp)
-            if (member.whatsapp) {
+            if (member.whatsapp && member.whatsapp.length > 5) {
                 const clientLink = `https://wa.me/${member.whatsapp}?text=${encodeURIComponent(messageToClient)}`;
                 window.open(clientLink, '_blank');
             }
 
             // Invia email a cliente (se ha email)
-            if (member.email) {
+            if (member.email && member.email.includes('@')) {
                 const emailLink = `mailto:${member.email}?subject=${encodeURIComponent('Rinnovo Tesseramento')}&body=${encodeURIComponent(messageToClient)}`;
                 window.open(emailLink, '_blank');
             }
 
-            // Invia a me
-            const myWhatsApp = '3478881515';
-            const myLink = `https://wa.me/${myWhatsApp}?text=${encodeURIComponent(messageToMe)}`;
-            window.open(myLink, '_blank');
+            // Invia a me dopo 1 secondo
+            setTimeout(() => {
+                const myLink = `https://wa.me/3478881515?text=${encodeURIComponent(messageToMe)}`;
+                window.open(myLink, '_blank');
+            }, 1000);
+            
+            // Se il cliente non ha contatti, invia solo a me
+            if ((!member.whatsapp || member.whatsapp.length <= 5) && (!member.email || !member.email.includes('@'))) {
+                alert(`Attenzione: ${member.nome} ${member.cognome} non ha contatti WhatsApp/Email validi!`);
+            }
         }
 
         // Rinnova tesserato
