@@ -213,7 +213,87 @@
             opacity: 0.7;
         }
 
-        .floating-menu {
+        .search-filters {
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 1.5rem;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 0.6rem 1rem;
+            border: 2px solid var(--secondary);
+            border-radius: 25px;
+            font-size: 1rem;
+            background: var(--bg);
+            transition: border-color 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .filter-select {
+            padding: 0.4rem 0.8rem;
+            border: 1px solid var(--secondary);
+            border-radius: 6px;
+            background: var(--card-bg);
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+
+        .clear-filters {
+            background: var(--secondary);
+            color: var(--text);
+            padding: 0.4rem 0.8rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .notification-status {
+            background: var(--card-bg);
+            padding: 0.8rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 1rem;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .notification-enabled {
+            background: linear-gradient(135deg, #4caf50, #45a049);
+            color: white;
+        }
+
+        .notification-disabled {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            color: white;
+        }
             position: fixed;
             bottom: 2rem;
             right: 2rem;
@@ -389,6 +469,12 @@
     </header>
     
     <main>
+        <!-- Stato notifiche -->
+        <div id="notificationStatus" class="notification-status notification-disabled">
+            🔔 <span id="notificationText">Clicca per abilitare notifiche browser</span>
+            <button onclick="requestNotifications()" style="margin-left: 1rem; padding: 0.3rem 0.8rem; background: rgba(255,255,255,0.3); border: none; border-radius: 4px; color: inherit; cursor: pointer;">Abilita</button>
+        </div>
+
         <!-- Statistiche rapide -->
         <div class="quick-stats">
             <div class="stats-grid">
@@ -411,8 +497,55 @@
             </div>
         </div>
 
+        <!-- Ricerca e Filtri -->
+        <div class="search-filters">
+            <div class="search-bar">
+                <input type="text" class="search-input" id="searchInput" placeholder="🔍 Cerca per nome, cognome o numero tessera..." onkeyup="applyFilters()">
+            </div>
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label style="font-size: 0.9rem; margin: 0;">Mese scadenza:</label>
+                    <select class="filter-select" id="monthFilter" onchange="applyFilters()">
+                        <option value="">Tutti i mesi</option>
+                        <option value="01">Gennaio</option>
+                        <option value="02">Febbraio</option>
+                        <option value="03">Marzo</option>
+                        <option value="04">Aprile</option>
+                        <option value="05">Maggio</option>
+                        <option value="06">Giugno</option>
+                        <option value="07">Luglio</option>
+                        <option value="08">Agosto</option>
+                        <option value="09">Settembre</option>
+                        <option value="10">Ottobre</option>
+                        <option value="11">Novembre</option>
+                        <option value="12">Dicembre</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label style="font-size: 0.9rem; margin: 0;">Stato:</label>
+                    <select class="filter-select" id="statusFilter" onchange="applyFilters()">
+                        <option value="">Tutti</option>
+                        <option value="expired">Solo Scaduti</option>
+                        <option value="expiring">Solo In Scadenza</option>
+                        <option value="active">Solo Attivi</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label style="font-size: 0.9rem; margin: 0;">Ordina per:</label>
+                    <select class="filter-select" id="sortFilter" onchange="applyFilters()">
+                        <option value="expiry_asc">Scadenza (prima i più urgenti)</option>
+                        <option value="expiry_desc">Scadenza (prima i meno urgenti)</option>
+                        <option value="name_asc">Nome A-Z</option>
+                        <option value="name_desc">Nome Z-A</option>
+                        <option value="tessera_asc">Numero Tessera</option>
+                    </select>
+                </div>
+                <button class="clear-filters" onclick="clearAllFilters()">🗑️ Pulisci Filtri</button>
+            </div>
+        </div>
+
         <!-- Dashboard principale -->
-        <div class="dashboard">
+        <div class="dashboard" id="mainDashboard">
             <!-- Tesserati Scaduti -->
             <div class="urgent-section">
                 <div class="section-header">
@@ -433,6 +566,14 @@
                 <div id="expiringList">
                     <div class="empty-state">✅ Nessuna scadenza imminente</div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Risultati ricerca (nascosto inizialmente) -->
+        <div id="searchResults" style="display: none;">
+            <div class="card" style="padding: 1.5rem;">
+                <h2>🔍 Risultati Ricerca</h2>
+                <div id="searchResultsList"></div>
             </div>
         </div>
     </main>
@@ -510,6 +651,209 @@
 
     <script>
         let editingIndex = null;
+        let allMembers = []; // Cache per filtri
+        let currentFilters = {
+            search: '',
+            month: '',
+            status: '',
+            sort: 'expiry_asc'
+        };
+
+        // Notifiche Browser
+        function requestNotifications() {
+            if ('Notification' in window) {
+                Notification.requestPermission().then(permission => {
+                    updateNotificationStatus(permission);
+                    if (permission === 'granted') {
+                        new Notification('🛡️ Notifiche Abilitate!', {
+                            body: 'Riceverai alert per le scadenze anche quando l\'app è chiusa.',
+                            icon: '/favicon.ico'
+                        });
+                    }
+                });
+            } else {
+                alert('Il tuo browser non supporta le notifiche.');
+            }
+        }
+
+        function updateNotificationStatus(permission = null) {
+            const status = document.getElementById('notificationStatus');
+            const text = document.getElementById('notificationText');
+            const button = status.querySelector('button');
+            
+            const currentPermission = permission || (('Notification' in window) ? Notification.permission : 'denied');
+            
+            if (currentPermission === 'granted') {
+                status.className = 'notification-status notification-enabled';
+                text.textContent = '🔔 Notifiche browser abilitate';
+                button.style.display = 'none';
+            } else if (currentPermission === 'denied') {
+                status.className = 'notification-status notification-disabled';
+                text.textContent = '🔕 Notifiche browser disabilitate';
+                button.style.display = 'inline';
+                button.textContent = 'Riabilita';
+            } else {
+                status.className = 'notification-status notification-disabled';
+                text.textContent = '🔔 Clicca per abilitare notifiche browser';
+                button.style.display = 'inline';
+                button.textContent = 'Abilita';
+            }
+        }
+
+        function sendBrowserNotification(member, daysLeft) {
+            if (Notification.permission === 'granted') {
+                const isExpired = daysLeft <= 0;
+                const title = isExpired ? '🚨 Tessera Scaduta!' : '⚠️ Scadenza Imminente!';
+                const body = isExpired 
+                    ? `${member.nome} ${member.cognome} - Tessera ${member.numeroTessera} SCADUTA`
+                    : `${member.nome} ${member.cognome} - Tessera ${member.numeroTessera} scade tra ${daysLeft} giorni`;
+                
+                const notification = new Notification(title, {
+                    body: body,
+                    icon: '/favicon.ico',
+                    requireInteraction: true
+                });
+                
+                notification.onclick = function() {
+                    window.focus();
+                    notification.close();
+                };
+            }
+        }
+
+        // Filtri e Ricerca
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const monthFilter = document.getElementById('monthFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const sortFilter = document.getElementById('sortFilter').value;
+            
+            currentFilters = { search: searchTerm, month: monthFilter, status: statusFilter, sort: sortFilter };
+            
+            // Se c'è ricerca o filtri attivi, mostra risultati ricerca
+            if (searchTerm || monthFilter || statusFilter) {
+                showSearchResults();
+            } else {
+                showMainDashboard();
+            }
+        }
+
+        function showSearchResults() {
+            document.getElementById('mainDashboard').style.display = 'none';
+            document.getElementById('searchResults').style.display = 'block';
+            
+            const members = JSON.parse(localStorage.getItem('members') || '[]');
+            let filteredMembers = members.map((member, index) => ({...member, index}));
+            
+            // Applica filtri
+            if (currentFilters.search) {
+                filteredMembers = filteredMembers.filter(member => 
+                    member.nome.toLowerCase().includes(currentFilters.search) ||
+                    member.cognome.toLowerCase().includes(currentFilters.search) ||
+                    member.numeroTessera.toLowerCase().includes(currentFilters.search)
+                );
+            }
+            
+            if (currentFilters.month) {
+                filteredMembers = filteredMembers.filter(member => {
+                    const expiryMonth = new Date(member.dataScadenza).getMonth() + 1;
+                    return expiryMonth.toString().padStart(2, '0') === currentFilters.month;
+                });
+            }
+            
+            if (currentFilters.status) {
+                filteredMembers = filteredMembers.filter(member => {
+                    const isExp = isExpired(member.dataScadenza);
+                    const isExp15 = isExpiring(member.dataScadenza, 15);
+                    
+                    if (currentFilters.status === 'expired') return isExp;
+                    if (currentFilters.status === 'expiring') return isExp15 && !isExp;
+                    if (currentFilters.status === 'active') return !isExp && !isExp15;
+                    return true;
+                });
+            }
+            
+            // Applica ordinamento
+            filteredMembers.sort((a, b) => {
+                switch (currentFilters.sort) {
+                    case 'expiry_asc':
+                        return new Date(a.dataScadenza) - new Date(b.dataScadenza);
+                    case 'expiry_desc':
+                        return new Date(b.dataScadenza) - new Date(a.dataScadenza);
+                    case 'name_asc':
+                        return (a.nome + ' ' + a.cognome).localeCompare(b.nome + ' ' + b.cognome);
+                    case 'name_desc':
+                        return (b.nome + ' ' + b.cognome).localeCompare(a.nome + ' ' + a.cognome);
+                    case 'tessera_asc':
+                        return a.numeroTessera.localeCompare(b.numeroTessera);
+                    default:
+                        return 0;
+                }
+            });
+            
+            // Mostra risultati
+            const resultsList = document.getElementById('searchResultsList');
+            resultsList.innerHTML = '';
+            
+            if (filteredMembers.length === 0) {
+                resultsList.innerHTML = '<div style="text-align: center; padding: 2rem; opacity: 0.7;">🔍 Nessun risultato trovato</div>';
+                return;
+            }
+            
+            filteredMembers.forEach(member => {
+                const isExp = isExpired(member.dataScadenza);
+                const isExp15 = isExpiring(member.dataScadenza, 15);
+                const daysLeft = getDaysLeft(member.dataScadenza);
+                
+                const statusColor = isExp ? '#f44336' : isExp15 ? '#ff9800' : '#4caf50';
+                const statusText = isExp ? 'SCADUTO' : isExp15 ? `${daysLeft} giorni` : 'ATTIVO';
+                
+                const div = document.createElement('div');
+                div.style.cssText = `
+                    background: var(--card-bg);
+                    padding: 1rem;
+                    margin-bottom: 1rem;
+                    border-radius: 8px;
+                    border-left: 4px solid ${statusColor};
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                `;
+                
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 250px;">
+                            <strong style="font-size: 1.1rem;">${member.nome} ${member.cognome}</strong> - ${member.numeroTessera}<br>
+                            <small>Scadenza: ${formatDate(member.dataScadenza)} - <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span></small><br>
+                            <small style="opacity: 0.7;">
+                                ${member.email ? `📧 ${member.email}` : ''} 
+                                ${member.whatsapp ? `📱 ${member.whatsapp}` : ''}
+                            </small>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                            <button onclick="sendAlert(${member.index})" class="warning" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">📩 Promemoria</button>
+                            <button onclick="renewMember(${member.index})" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">🔄 Rinnova</button>
+                            <button onclick="editMember(${member.index})" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">✏️ Modifica</button>
+                        </div>
+                    </div>
+                `;
+                
+                resultsList.appendChild(div);
+            });
+        }
+
+        function showMainDashboard() {
+            document.getElementById('mainDashboard').style.display = 'grid';
+            document.getElementById('searchResults').style.display = 'none';
+            loadDashboard();
+        }
+
+        function clearAllFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('monthFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('sortFilter').value = 'expiry_asc';
+            currentFilters = { search: '', month: '', status: '', sort: 'expiry_asc' };
+            showMainDashboard();
+        }
 
         // Funzione per calcolare la scadenza
         function calculateExpiry(inscriptionDate) {
@@ -965,20 +1309,36 @@
             }
         }
 
-        // Controllo automatico scadenze
+        // Controllo automatico scadenze con notifiche browser
         function checkExpirations() {
             const members = JSON.parse(localStorage.getItem('members') || '[]');
             const lastShown = JSON.parse(localStorage.getItem('popupShown') || '{}');
+            const lastNotified = JSON.parse(localStorage.getItem('lastNotified') || '{}');
             const today = new Date().toDateString();
             
             members.forEach((member, index) => {
                 const daysLeft = getDaysLeft(member.dataScadenza);
                 
+                // Popup (solo se app è aperta)
                 if ((daysLeft <= 7 || daysLeft <= 0) && lastShown[member.numeroTessera] !== today) {
                     setTimeout(() => {
                         showExpirationPopup({...member, index}, daysLeft);
                     }, 2000);
                     return; // Mostra solo un popup alla volta
+                }
+                
+                // Notifiche browser (anche app chiusa se autorizzate)
+                if (Notification.permission === 'granted') {
+                    const shouldNotify = (daysLeft === 7 || daysLeft === 3 || daysLeft === 1 || daysLeft <= 0) && 
+                                       lastNotified[member.numeroTessera] !== today;
+                    
+                    if (shouldNotify) {
+                        sendBrowserNotification({...member, index}, daysLeft);
+                        
+                        // Segna come notificato oggi
+                        lastNotified[member.numeroTessera] = today;
+                        localStorage.setItem('lastNotified', JSON.stringify(lastNotified));
+                    }
                 }
             });
         }
@@ -1007,6 +1367,9 @@
                 document.body.classList.add("dark");
             }
             
+            // Controlla stato notifiche
+            updateNotificationStatus();
+            
             loadDashboard();
             
             // Controlla scadenze all'avvio
@@ -1014,6 +1377,12 @@
             
             // Controlla scadenze ogni 10 minuti
             setInterval(checkExpirations, 10 * 60 * 1000);
+            
+            // Controlla scadenze ogni ora per notifiche browser (anche in background)
+            if ('serviceWorker' in navigator) {
+                // Service worker per notifiche in background (opzionale)
+                setInterval(checkExpirations, 60 * 60 * 1000);
+            }
         };
     </script>
 </body>
