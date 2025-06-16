@@ -2,20 +2,23 @@
             padding: 1rem;
             max-width: 1400px;
             margin: auto;
-            display: grid;
-            grid-template-columns: 1fr 350px;
+            display: flex;
             gap: 1rem;
             min-height: calc(100vh - 120px);
             box-sizing: border-box;
         }
 
         .main-content {
+            flex: 1;
             display: flex;
             flex-direction: column;
             gap: 1rem;
+            min-width: 0;
         }
 
         .sidebar {
+            width: 320px;
+            flex-shrink: 0;
             display: flex;
             flex-direction: column;
             gap: 1rem;
@@ -24,7 +27,6 @@
             height: fit-content;
             max-height: calc(100vh - 2rem);
             overflow-y: auto;
-            min-width: 0;
         }
 
         .urgent-card {
@@ -289,12 +291,37 @@
 
         li.expiring {
             border-left-color: var(--warning);
-            background: linear-gradient(90deg, var(--card-bg), rgba(255, 152, 0, 0.1));
+            background: linear-gradient(90deg, var(--card-bg), rgba(255, 152, 0, 0.15));
         }
 
         li.expired {
             border-left-color: var(--danger);
-            background: linear-gradient(90deg, var(--card-bg), rgba(244, 67, 54, 0.1));
+            background: linear-gradient(90deg, var(--card-bg), rgba(244, 67, 54, 0.15));
+        }
+
+        .expiry-date {
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            display: inline-block;
+            margin: 0.5rem 0;
+        }
+
+        .expiry-date.warning {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            color: white;
+        }
+
+        .expiry-date.danger {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+            color: white;
+        }
+
+        .days-left {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--danger);
         }
 
         .stats {
@@ -342,11 +369,12 @@
 
         @media screen and (max-width: 768px) {
             main {
-                grid-template-columns: 1fr;
+                flex-direction: column;
                 gap: 1rem;
             }
 
             .sidebar {
+                width: 100%;
                 position: static;
                 max-height: none;
             }
@@ -453,9 +481,9 @@
                 <button onclick="setFilter('expired')">❌ Scaduti</button>
             </section>
 
-            <!-- Lista Tesserati -->
+            <!-- Lista Tesserati Urgenti -->
             <section class="card">
-                <h2>👥 Lista Tesserati</h2>
+                <h2>🚨 Tesserati con Scadenze Urgenti</h2>
                 <ul id="membersList"></ul>
             </section>
         </div>
@@ -581,6 +609,9 @@
                     urgentMembers.push({...member, index, daysLeft, isExpired: isExp});
                 }
 
+                // MOSTRA SOLO TESSERATI URGENTI (scaduti o in scadenza entro 15 giorni)
+                if (!isExp && !isExpiring15) return;
+
                 // Filtri per lista principale
                 if (filter === 'active' && (isExp || isExpiring15)) return;
                 if (filter === 'expiring' && !isExpiring15) return;
@@ -592,15 +623,20 @@
                 if (isExp) li.classList.add('expired');
                 else if (isExpiring15) li.classList.add('expiring');
 
-                const statusText = isExp ? '❌ Scaduto' : isExpiring15 ? '⚠️ In Scadenza' : '✅ Attivo';
+                const statusText = isExp ? '❌ SCADUTO' : '⚠️ IN SCADENZA';
+                const expiryClass = isExp ? 'danger' : 'warning';
+                const daysText = isExp ? 'SCADUTO' : `${daysLeft} giorni rimanenti`;
 
                 li.innerHTML = `
-                    <strong>${member.nome} ${member.cognome}</strong> - Tessera: ${member.numeroTessera}<br>
-                    <small>Iscrizione: ${formatDate(member.dataIscrizione)} | Scadenza: ${formatDate(member.dataScadenza)}</small><br>
+                    <strong style="font-size: 1.1rem;">${member.nome} ${member.cognome}</strong> - Tessera: ${member.numeroTessera}<br>
+                    <div class="expiry-date ${expiryClass}">
+                        📅 Scadenza: ${formatDate(member.dataScadenza)}
+                    </div>
+                    <div class="days-left">${statusText} - ${daysText}</div>
+                    <small>Iscrizione: ${formatDate(member.dataIscrizione)}</small><br>
                     <small>Email: ${member.email || 'Non fornita'} | WhatsApp: ${member.whatsapp || 'Non fornito'}</small><br>
-                    <small>Stato: ${statusText} ${!isExp && daysLeft <= 15 ? `(${daysLeft} giorni)` : ''}</small><br>
-                    <div style="margin-top: 0.5rem;">
-                        <button onclick="sendAlert(${index})" class="warning">📱 Invia Alert</button>
+                    <div style="margin-top: 1rem;">
+                        <button onclick="sendAlert(${index})" class="warning">📩 Invia Promemoria</button>
                         <button onclick="renewMember(${index})" class="primary">🔄 Rinnova</button>
                         <button onclick="editMember(${index})">✏️ Modifica</button>
                         <button onclick="deleteMember(${index})" class="danger">🗑️ Elimina</button>
@@ -622,11 +658,23 @@
                     li.innerHTML = `
                         <strong>${statusIcon} ${member.nome} ${member.cognome}</strong><br>
                         <small>Tessera: ${member.numeroTessera}</small><br>
-                        <small>${daysText}</small><br>
-                        <button onclick="sendAlert(${member.index})" style="background: rgba(255,255,255,0.3); color: white; font-size: 0.8rem; padding: 0.3rem 0.5rem; margin-top: 0.3rem;">📱 Alert</button>
+                        <strong style="color: #ffeb3b;">${daysText}</strong><br>
+                        <button onclick="sendAlert(${member.index})" style="background: rgba(255,255,255,0.3); color: white; font-size: 0.8rem; padding: 0.3rem 0.5rem; margin-top: 0.3rem;">📩 Promemoria</button>
                     `;
                     urgentList.appendChild(li);
                 });
+            }
+
+            // Messaggio se nessun tesserato urgente nella lista principale
+            if (list.children.length === 0) {
+                const emptyLi = document.createElement('li');
+                emptyLi.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--primary);">
+                        <h3>✅ Nessun tesserato con scadenze urgenti!</h3>
+                        <p>Tutti i tesserati sono in regola o scadono tra più di 15 giorni.</p>
+                    </div>
+                `;
+                list.appendChild(emptyLi);
             }
 
             // Aggiorna statistiche
@@ -811,7 +859,7 @@
                     <p>Scadenza: ${formatDate(member.dataScadenza)}</p>
                     <p>${message}</p>
                     <div class="popup-actions">
-                        <button onclick="closePopup(); sendAlert(${member.index})" class="warning">📱 Invia Alert</button>
+                        <button onclick="closePopup(); sendAlert(${member.index})" class="warning">📩 Invia Promemoria</button>
                         <button onclick="closePopup(); renewMember(${member.index})" class="primary">🔄 Rinnova</button>
                         <button onclick="closePopup()" style="background: var(--secondary);">⏰ Dopo</button>
                     </div>
