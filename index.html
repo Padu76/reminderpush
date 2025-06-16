@@ -1,58 +1,13 @@
-        main {
-            padding: 1rem;
-            max-width: 1400px;
-            margin: auto;
-            display: flex;
-            gap: 1rem;
-            min-height: calc(100vh - 120px);
-            box-sizing: border-box;
-        }
-
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            min-width: 0;
-        }
-
-        .sidebar {
-            width: 320px;
-            flex-shrink: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            position: sticky;
-            top: 1rem;
-            height: fit-content;
-            max-height: calc(100vh - 2rem);
-            overflow-y: auto;
-        }
-
-        .urgent-card {
-            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-            color: white;
-            padding: 1rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(238, 90, 36, 0.3);
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-        }
-
-        .urgent-card h3 {
-            margin: 0 0 1rem 0;
-            font-size: 1.1rem;
-        }
-
-        .urgent-list {
-            list-style: none;
-            padding: 0;
-            <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
     <title>Gestione Tesserati v1.0</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         :root {
             --bg: #f7f9fb;
             --text: #333;
@@ -107,20 +62,24 @@
 
         main {
             padding: 1rem;
-            max-width: 1400px;
+            width: 100%;
             margin: auto;
             display: grid;
-            grid-template-columns: 1fr 350px;
+            grid-template-columns: minmax(0, 1fr) 300px;
             gap: 1rem;
+            min-height: calc(100vh - 120px);
+            max-width: 100%;
         }
 
         .main-content {
             display: flex;
             flex-direction: column;
             gap: 1rem;
+            overflow: hidden;
         }
 
         .sidebar {
+            width: 300px;
             display: flex;
             flex-direction: column;
             gap: 1rem;
@@ -129,93 +88,7 @@
             height: fit-content;
             max-height: calc(100vh - 2rem);
             overflow-y: auto;
-        }
-
-        .urgent-card {
-            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-            color: white;
-            padding: 1rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(238, 90, 36, 0.3);
-        }
-
-        .urgent-card h3 {
-            margin: 0 0 1rem 0;
-            font-size: 1.1rem;
-        }
-
-        .urgent-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .urgent-item {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 0.75rem;
-            margin-bottom: 0.5rem;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-        }
-
-        .urgent-item:last-child {
-            margin-bottom: 0;
-        }
-
-        /* Popup styles */
-        .popup-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .popup {
-            background: var(--card-bg);
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            max-width: 500px;
-            width: 90%;
-            text-align: center;
-            animation: slideIn 0.3s ease;
-        }
-
-        .popup h3 {
-            color: var(--danger);
-            margin: 0 0 1rem 0;
-            font-size: 1.5rem;
-        }
-
-        .popup-actions {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            margin-top: 1.5rem;
-        }
-
-        .popup-actions button {
-            padding: 0.8rem 1.5rem;
-            font-size: 1rem;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        @keyframes slideIn {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+            overflow-x: hidden;
         }
 
         .card {
@@ -299,31 +172,6 @@
             background: linear-gradient(90deg, var(--card-bg), rgba(244, 67, 54, 0.15));
         }
 
-        .expiry-date {
-            font-size: 1.1rem;
-            font-weight: bold;
-            padding: 0.3rem 0.6rem;
-            border-radius: 6px;
-            display: inline-block;
-            margin: 0.5rem 0;
-        }
-
-        .expiry-date.warning {
-            background: linear-gradient(135deg, #ff9800, #f57c00);
-            color: white;
-        }
-
-        .expiry-date.danger {
-            background: linear-gradient(135deg, #f44336, #d32f2f);
-            color: white;
-        }
-
-        .days-left {
-            font-size: 0.9rem;
-            font-weight: bold;
-            color: var(--danger);
-        }
-
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -363,13 +211,122 @@
             margin-bottom: 1rem;
         }
 
-        .hidden {
-            display: none;
+        .urgent-card {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(238, 90, 36, 0.3);
+            overflow: hidden;
+        }
+
+        .urgent-card h3 {
+            margin: 0 0 1rem 0;
+            font-size: 1.1rem;
+        }
+
+        .urgent-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .urgent-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .urgent-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .expiry-date {
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            display: inline-block;
+            margin: 0.5rem 0;
+        }
+
+        .expiry-date.warning {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            color: white;
+        }
+
+        .expiry-date.danger {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+            color: white;
+        }
+
+        .days-left {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--danger);
+        }
+
+        /* Popup styles */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .popup {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            animation: slideIn 0.3s ease;
+        }
+
+        .popup h3 {
+            color: var(--danger);
+            margin: 0 0 1rem 0;
+            font-size: 1.5rem;
+        }
+
+        .popup-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        .popup-actions button {
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
 
         @media screen and (max-width: 768px) {
             main {
-                flex-direction: column;
+                grid-template-columns: 1fr;
                 gap: 1rem;
             }
 
@@ -609,10 +566,10 @@
                     urgentMembers.push({...member, index, daysLeft, isExpired: isExp});
                 }
 
-                // MOSTRA SOLO TESSERATI URGENTI (scaduti o in scadenza entro 15 giorni)
-                if (!isExp && !isExpiring15) return;
+                // MOSTRA TUTTI I TESSERATI se filtro = 'all', altrimenti SOLO URGENTI
+                if (filter !== 'all' && !isExp && !isExpiring15) return;
 
-                // Filtri per lista principale
+                // Filtri specifici
                 if (filter === 'active' && (isExp || isExpiring15)) return;
                 if (filter === 'expiring' && !isExpiring15) return;
                 if (filter === 'expired' && !isExp) return;
@@ -623,16 +580,21 @@
                 if (isExp) li.classList.add('expired');
                 else if (isExpiring15) li.classList.add('expiring');
 
-                const statusText = isExp ? '❌ SCADUTO' : '⚠️ IN SCADENZA';
-                const expiryClass = isExp ? 'danger' : 'warning';
-                const daysText = isExp ? 'SCADUTO' : `${daysLeft} giorni rimanenti`;
+                const statusText = isExp ? '❌ SCADUTO' : isExpiring15 ? '⚠️ IN SCADENZA' : '✅ ATTIVO';
+                const expiryClass = isExp ? 'danger' : isExpiring15 ? 'warning' : '';
+                const daysText = isExp ? 'SCADUTO' : isExpiring15 ? `${daysLeft} giorni rimanenti` : '';
+
+                // Design diverso per tesserati attivi vs urgenti
+                const isUrgent = isExp || isExpiring15;
+                const nameStyle = isUrgent ? 'font-size: 1.1rem;' : 'font-size: 1rem;';
+                const expiryDisplay = isUrgent ? 
+                    `<div class="expiry-date ${expiryClass}">📅 Scadenza: ${formatDate(member.dataScadenza)}</div>
+                     <div class="days-left">${statusText} - ${daysText}</div>` :
+                    `<small>Scadenza: ${formatDate(member.dataScadenza)} - ${statusText}</small>`;
 
                 li.innerHTML = `
-                    <strong style="font-size: 1.1rem;">${member.nome} ${member.cognome}</strong> - Tessera: ${member.numeroTessera}<br>
-                    <div class="expiry-date ${expiryClass}">
-                        📅 Scadenza: ${formatDate(member.dataScadenza)}
-                    </div>
-                    <div class="days-left">${statusText} - ${daysText}</div>
+                    <strong style="${nameStyle}">${member.nome} ${member.cognome}</strong> - Tessera: ${member.numeroTessera}<br>
+                    ${expiryDisplay}
                     <small>Iscrizione: ${formatDate(member.dataIscrizione)}</small><br>
                     <small>Email: ${member.email || 'Non fornita'} | WhatsApp: ${member.whatsapp || 'Non fornito'}</small><br>
                     <div style="margin-top: 1rem;">
@@ -665,13 +627,22 @@
                 });
             }
 
-            // Messaggio se nessun tesserato urgente nella lista principale
+            // Messaggio se nessun tesserato nella lista
             if (list.children.length === 0) {
                 const emptyLi = document.createElement('li');
+                let message = '';
+                
+                if (filter === 'all') {
+                    message = '<h3>📭 Nessun tesserato trovato</h3><p>Importa il CSV per iniziare.</p>';
+                } else if (filter === 'expiring' || filter === 'expired') {
+                    message = '<h3>✅ Nessun tesserato con scadenze urgenti!</h3><p>Tutti i tesserati sono in regola.</p>';
+                } else {
+                    message = '<h3>📋 Nessun tesserato in questa categoria</h3>';
+                }
+                
                 emptyLi.innerHTML = `
                     <div style="text-align: center; padding: 2rem; color: var(--primary);">
-                        <h3>✅ Nessun tesserato con scadenze urgenti!</h3>
-                        <p>Tutti i tesserati sono in regola o scadono tra più di 15 giorni.</p>
+                        ${message}
                     </div>
                 `;
                 list.appendChild(emptyLi);
