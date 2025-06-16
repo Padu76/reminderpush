@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Gestione Tesserati v2.0</title>
+    <title>TRIBÙ - Alert Scadenze Tesserati</title>
     <style>
         * {
             box-sizing: border-box;
@@ -64,7 +64,7 @@
             width: 80px;
             height: 60px;
             background-image: url('./tribu-logo.png');
-            background-size: contain;
+            background-size: cover;
             background-repeat: no-repeat;
             background-position: center;
             border-radius: 8px;
@@ -97,23 +97,39 @@
 
         .header-actions {
             display: flex;
-            gap: 1rem;
+            gap: 0.5rem;
             align-items: center;
         }
 
-        #themeToggle, #addMemberBtn {
+        .header-btn {
             background: rgba(255,255,255,0.2);
             border: none;
-            font-size: 1.2rem;
             color: white;
             cursor: pointer;
-            padding: 0.5rem;
-            border-radius: 6px;
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
             transition: background 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.2rem;
+            font-size: 0.8rem;
+            min-width: 70px;
         }
 
-        #themeToggle:hover, #addMemberBtn:hover {
+        .header-btn:hover {
             background: rgba(255,255,255,0.3);
+        }
+
+        .header-btn-icon {
+            font-size: 1.2rem;
+        }
+
+        .header-btn-text {
+            font-size: 0.65rem;
+            opacity: 0.9;
+            text-align: center;
+            line-height: 1;
         }
 
         main {
@@ -505,6 +521,20 @@
                 gap: 0.5rem;
             }
 
+            .header-actions {
+                flex-direction: column;
+                gap: 0.3rem;
+            }
+
+            .header-btn {
+                min-width: 60px;
+                padding: 0.4rem 0.6rem;
+            }
+
+            .header-btn-text {
+                font-size: 0.6rem;
+            }
+
             .brand-info {
                 align-items: flex-start;
             }
@@ -519,11 +549,6 @@
 
             .brand-address {
                 font-size: 0.65rem;
-            }
-
-            .header-actions {
-                flex-direction: row;
-                gap: 0.5rem;
             }
 
             .stats-grid {
@@ -560,14 +585,26 @@
             <div class="logo"></div>
             <div class="brand-info">
                 <div class="brand-name">TRIBÙ Personal Training ASD</div>
-                <div class="brand-subtitle">Gestione Tesserati</div>
+                <div class="brand-subtitle">Alert Scadenze</div>
                 <div class="brand-address">Via Albere 27/B - 37138 Verona</div>
             </div>
         </div>
         <div class="header-actions">
-            <button id="addMemberBtn" onclick="openModal('memberModal')" title="Aggiungi tesserato">➕</button>
-            <button id="themeToggle" onclick="toggleTheme()">🌙</button>
+            <button class="header-btn" onclick="document.getElementById('csvFile').click()" title="Importa CSV">
+                <div class="header-btn-icon">📥</div>
+                <div class="header-btn-text">Import CSV</div>
+            </button>
+            <button class="header-btn" onclick="openModal('memberModal')" title="Aggiungi nuovo tesserato">
+                <div class="header-btn-icon">➕</div>
+                <div class="header-btn-text">Nuovo Tesserato</div>
+            </button>
+            <button class="header-btn" onclick="toggleTheme()" title="Cambia tema">
+                <div class="header-btn-icon">🌙</div>
+                <div class="header-btn-text">Tema</div>
+            </button>
         </div>
+        <!-- Input CSV nascosto -->
+        <input type="file" id="csvFile" accept=".csv" onchange="handleCSV(this)" style="display: none;">
     </header>
     
     <main>
@@ -930,10 +967,21 @@
                                 ${member.whatsapp ? `📱 ${member.whatsapp}` : ''}
                             </small>
                         </div>
-                        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                            <button onclick="sendAlert(${member.index})" class="warning" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">📩 Promemoria</button>
-                            <button onclick="renewMember(${member.index})" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">🔄 Rinnova</button>
-                            <button onclick="editMember(${member.index})" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">✏️ Modifica</button>
+                        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem;">
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <div style="display: flex; flex-direction: column; align-items: center;">
+                                    <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Promemoria</small>
+                                    <button onclick="sendAlert(${member.index})" class="warning" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">📩</button>
+                                </div>
+                                <div style="display: flex; flex-direction: column; align-items: center;">
+                                    <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Rinnova</small>
+                                    <button onclick="renewMember(${member.index})" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">🔄</button>
+                                </div>
+                                <div style="display: flex; flex-direction: column; align-items: center;">
+                                    <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Modifica</small>
+                                    <button onclick="editMember(${member.index})" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">✏️</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -1084,9 +1132,18 @@
                     ${member.email ? `📧 ${member.email}` : ''} ${member.whatsapp ? `📱 ${member.whatsapp}` : ''}
                 </div>
                 <div class="member-actions">
-                    <button onclick="sendAlert(${member.index})">📩 Promemoria</button>
-                    <button onclick="renewMember(${member.index})">🔄 Rinnova</button>
-                    <button onclick="editMember(${member.index})">✏️ Modifica</button>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Promemoria</small>
+                        <button onclick="sendAlert(${member.index})">📩</button>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Rinnova</small>
+                        <button onclick="renewMember(${member.index})">🔄</button>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Modifica</small>
+                        <button onclick="editMember(${member.index})">✏️</button>
+                    </div>
                 </div>
             `;
             
