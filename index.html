@@ -1160,7 +1160,7 @@
                     </div>
                     ${isContacted ? `
                     <div style="display: flex; flex-direction: column; align-items: center;">
-                        <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Reset</small>
+                        <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Reset Invio</small>
                         <button onclick="resetContactStatus('${memberKey}')" style="background: #ffc107; font-size: 0.8rem;">🔄</button>
                     </div>
                     ` : ''}
@@ -1334,12 +1334,12 @@
 
         // Reset stato contatto
         function resetContactStatus(memberKey) {
-            if (confirm('Vuoi resettare lo stato "contattato" per questo tesserato?')) {
+            if (confirm('Vuoi resettare lo stato "contattato" per permettere un nuovo invio promemoria?')) {
                 const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
                 delete contactLog[memberKey];
                 localStorage.setItem('contactLog', JSON.stringify(contactLog));
                 loadDashboard();
-                alert('✅ Stato contatto resettato!');
+                alert('✅ Stato invio resettato! Ora puoi inviare di nuovo il promemoria.');
             }
         }
 
@@ -1365,7 +1365,7 @@
                 localStorage.setItem('contactLog', JSON.stringify(contactLog));
                 
                 loadDashboard();
-                alert('✅ Tesseramento rinnovato con successo! Tracking contatti resettato.');
+                alert('✅ Tesseramento rinnovato con successo! Il cliente ha pagato e la scadenza è stata aggiornata.');
             }
         }
 
