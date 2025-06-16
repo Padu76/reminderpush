@@ -187,6 +187,18 @@
 
         .stat-item {
             padding: 0.5rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.3s, transform 0.2s;
+        }
+
+        .stat-item:hover {
+            background: rgba(37, 211, 102, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .stat-item.clickable {
+            cursor: pointer;
         }
 
         .stat-number {
@@ -380,7 +392,7 @@
         <!-- Statistiche rapide -->
         <div class="quick-stats">
             <div class="stats-grid">
-                <div class="stat-item">
+                <div class="stat-item clickable" onclick="openModal('allMembersModal')" title="Clicca per vedere tutti i tesserati">
                     <div class="stat-number" id="totalMembers">0</div>
                     <div class="stat-label">Totali</div>
                 </div>
@@ -475,6 +487,7 @@
             </div>
             
             <h3>📋 Visualizza Tutti</h3>
+            <p style="margin: 0.5rem 0; font-size: 0.9rem; opacity: 0.8;">Oppure clicca sul numero "Totali" nelle statistiche sopra</p>
             <button onclick="openModal('allMembersModal')" style="width: 100%;">👥 Vedi Tutti i Tesserati</button>
             
             <div style="text-align: center; margin-top: 1.5rem;">
