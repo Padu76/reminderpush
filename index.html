@@ -613,6 +613,11 @@
                 <div class="header-btn-icon">➕</div>
                 <div class="header-btn-text">Nuovo Tesserato</div>
             </button>
+            <button class="header-btn" onclick="cleanDuplicates()" title="Pulisci duplicati" style="background: rgba(255,0,0,0.3);">
+                <div class="header-btn-icon">🧹</div>
+                <div class="header-btn-text">Pulisci</div>
+            </button>
+                <div class="header-btn-icon">🌙</div>
             <button class="header-btn" onclick="toggleTheme()" title="Cambia tema">
                 <div class="header-btn-icon">🌙</div>
                 <div class="header-btn-text">Tema</div>
@@ -896,15 +901,29 @@
             }
         };
 
-        // Migrazione dati da localStorage a Firebase
+        // Migrazione dati da localStorage a Firebase (con controllo duplicati)
         async function migrateLocalDataToFirebase() {
             const localMembers = JSON.parse(localStorage.getItem('members') || '[]');
             
             if (localMembers.length > 0) {
-                console.log(`📦 Trovati ${localMembers.length} tesserati in localStorage. Migrazione in corso...`);
+                console.log(`📦 Trovati ${localMembers.length} tesserati in localStorage. Controllo duplicati...`);
+                
+                // Carica tesserati esistenti da Firebase
+                const existingMembers = await FirebaseDB.getMembers();
+                const existingTessere = new Set(existingMembers.map(m => m.numeroTessera));
+                
+                // Filtra solo i nuovi (non duplicati)
+                const newMembers = localMembers.filter(member => !existingTessere.has(member.numeroTessera));
+                
+                if (newMembers.length === 0) {
+                    console.log('✅ Tutti i tesserati sono già su Firebase. Nessuna migrazione necessaria.');
+                    return false;
+                }
+                
+                console.log(`🔄 Migrazione di ${newMembers.length} nuovi tesserati...`);
                 
                 let migrated = 0;
-                for (const member of localMembers) {
+                for (const member of newMembers) {
                     try {
                         await FirebaseDB.saveMember(member);
                         migrated++;
@@ -913,19 +932,52 @@
                     }
                 }
                 
-                console.log(`✅ Migrazione completata: ${migrated}/${localMembers.length} tesserati`);
+                console.log(`✅ Migrazione completata: ${migrated}/${newMembers.length} nuovi tesserati`);
                 
-                // Chiedi se cancellare i dati locali
-                if (migrated === localMembers.length && confirm(`Migrazione completata! ${migrated} tesserati caricati su Firebase.\n\nVuoi cancellare i dati locali per usare solo Firebase?`)) {
-                    localStorage.removeItem('members');
-                    localStorage.removeItem('contactLog');
-                    console.log('🗑️ Dati locali rimossi');
+                if (migrated > 0) {
+                    alert(`✅ Migrazione completata! ${migrated} nuovi tesserati aggiunti a Firebase.`);
                 }
                 
                 return true;
             }
             
             return false;
+        }
+
+        // Funzione per pulire duplicati esistenti
+        async function cleanDuplicates() {
+            console.log('🧹 Pulizia duplicati in corso...');
+            const members = await FirebaseDB.getMembers();
+            
+            // Raggruppa per numero tessera
+            const groups = {};
+            members.forEach(member => {
+                if (!groups[member.numeroTessera]) {
+                    groups[member.numeroTessera] = [];
+                }
+                groups[member.numeroTessera].push(member);
+            });
+            
+            // Trova duplicati
+            let duplicatesRemoved = 0;
+            for (const tessera in groups) {
+                const group = groups[tessera];
+                if (group.length > 1) {
+                    // Mantieni solo il primo, elimina gli altri
+                    for (let i = 1; i < group.length; i++) {
+                        await FirebaseDB.deleteMember(group[i].id);
+                        duplicatesRemoved++;
+                    }
+                }
+            }
+            
+            if (duplicatesRemoved > 0) {
+                console.log(`✅ Rimossi ${duplicatesRemoved} duplicati`);
+                alert(`🧹 Pulizia completata! Rimossi ${duplicatesRemoved} duplicati.`);
+                await loadDashboard();
+            } else {
+                console.log('✅ Nessun duplicato trovato');
+            }
         }
         let allMembers = []; // Cache per filtri
         let currentFilters = {
