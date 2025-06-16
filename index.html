@@ -1403,22 +1403,166 @@
             const messageToClient = `Ciao ${member.nome}, il tuo tesseramento e copertura assicurativa (n. ${member.numeroTessera}) scadono il ${formatDate(member.dataScadenza)}. Contattaci per il rinnovo!`;
             const messageToMe = `ALERT: Il tesserato ${member.nome} ${member.cognome} (n. ${member.numeroTessera}) scade il ${formatDate(member.dataScadenza)}`;
 
-            if (member.whatsapp && member.whatsapp.length > 5) {
-                const clientLink = `https://wa.me/${member.whatsapp}?text=${encodeURIComponent(messageToClient)}`;
-                window.open(clientLink, '_blank');
-            }
+            // Mostra popup con opzioni di invio
+            showContactModal(member, messageToClient, messageToMe, memberKey);
+        }
 
-            if (member.email && member.email.includes('@')) {
-                const emailLink = `mailto:${member.email}?subject=${encodeURIComponent('Rinnovo Tesseramento e Copertura Assicurativa')}&body=${encodeURIComponent(messageToClient)}`;
-                window.open(emailLink, '_blank');
-            }
+        function showContactModal(member, messageToClient, messageToMe, memberKey) {
+            // Rimuovi modal esistente se presente
+            const existingModal = document.getElementById('contactModal');
+            if (existingModal) existingModal.remove();
 
-            setTimeout(() => {
-                const myLink = `https://wa.me/3478881515?text=${encodeURIComponent(messageToMe)}`;
-                window.open(myLink, '_blank');
-            }, 1000);
+            const modal = document.createElement('div');
+            modal.id = 'contactModal';
+            modal.className = 'modal';
+            modal.style.display = 'block';
+
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <span class="close" onclick="closeContactModal()">&times;</span>
+                    <h2>📩 Invia Promemoria a ${member.nome} ${member.cognome}</h2>
+                    
+                    <div style="background: var(--bg); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                        <strong>📝 Messaggio:</strong><br>
+                        <div id="messagePreview" style="font-style: italic; color: var(--primary); margin-top: 0.5rem;">${messageToClient}</div>
+                        <button onclick="copyMessage('${messageToClient.replace(/'/g, "\\'")}', 'cliente')" style="margin-top: 0.5rem; padding: 0.3rem 0.6rem; font-size: 0.8rem;">📋 Copia Messaggio</button>
+                    </div>
+                    
+                    ${member.whatsapp && member.whatsapp.length > 5 ? `
+                    <div style="margin: 1rem 0;">
+                        <h3>📱 WhatsApp</h3>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button onclick="sendWhatsApp('${member.whatsapp}', '${messageToClient.replace(/'/g, "\\'")}', true)" style="background: #25D366; color: white;">
+                                🔗 Link WhatsApp (Automatico)
+                            </button>
+                            <button onclick="openWhatsAppManual('${member.whatsapp}')" style="background: #075E54; color: white;">
+                                📱 Apri Chat (Manuale)
+                            </button>
+                            <button onclick="copyPhoneNumber('${member.whatsapp}')" style="background: #128C7E; color: white;">
+                                📋 Copia Numero
+                            </button>
+                        </div>
+                        <small style="opacity: 0.8;">💡 Se il link automatico non funziona, usa "Apri Chat" e incolla il messaggio manualmente</small>
+                    </div>
+                    ` : ''}
+                    
+                    ${member.email && member.email.includes('@') ? `
+                    <div style="margin: 1rem 0;">
+                        <h3>📧 Email</h3>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button onclick="sendEmail('${member.email}', '${messageToClient.replace(/'/g, "\\'")}')">
+                                📧 Invia Email
+                            </button>
+                            <button onclick="copyEmail('${member.email}')">
+                                📋 Copia Email
+                            </button>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    <div style="margin: 1.5rem 0;">
+                        <h3>📲 Notifica a Me</h3>
+                        <button onclick="sendWhatsApp('3478881515', '${messageToMe.replace(/'/g, "\\'")}', false)" style="background: var(--warning);">
+                            📩 Invia Notifica a Me
+                        </button>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 2rem; border-top: 1px solid var(--secondary); padding-top: 1rem;">
+                        <button onclick="markAsContacted('${memberKey}'); closeContactModal();" style="background: var(--primary);">
+                            ✅ Segna come Contattato
+                        </button>
+                        <button onclick="closeContactModal()" class="secondary">
+                            ❌ Annulla
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+        }
+
+        function closeContactModal() {
+            const modal = document.getElementById('contactModal');
+            if (modal) modal.remove();
+        }
+
+        function sendWhatsApp(phone, message, isClient) {
+            // Prova prima il metodo standard
+            const link1 = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+            window.open(link1, '_blank');
             
+            // Se è un cliente, offri alternative dopo 2 secondi
+            if (isClient) {
+                setTimeout(() => {
+                    if (confirm('Il messaggio non si è pre-compilato? Clicca OK per aprire WhatsApp senza messaggio e potrai incollare il testo.')) {
+                        openWhatsAppManual(phone);
+                    }
+                }, 2000);
+            }
+        }
+
+        function openWhatsAppManual(phone) {
+            // Apre WhatsApp senza messaggio precompilato
+            const link = `https://wa.me/${phone}`;
+            window.open(link, '_blank');
+            
+            // Mostra istruzioni
+            setTimeout(() => {
+                alert('📱 WhatsApp aperto! Ora:\n1. Copia il messaggio dal pulsante "📋 Copia Messaggio"\n2. Incollalo nella chat\n3. Invia');
+            }, 1000);
+        }
+
+        function copyMessage(message, type) {
+            navigator.clipboard.writeText(message).then(() => {
+                alert(`📋 Messaggio copiato! Ora incollalo nella chat ${type === 'cliente' ? 'del cliente' : ''}`);
+            }).catch(() => {
+                // Fallback per browser che non supportano clipboard API
+                const textArea = document.createElement('textarea');
+                textArea.value = message;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert(`📋 Messaggio copiato! Ora incollalo nella chat ${type === 'cliente' ? 'del cliente' : ''}`);
+            });
+        }
+
+        function copyPhoneNumber(phone) {
+            navigator.clipboard.writeText(phone).then(() => {
+                alert(`📋 Numero ${phone} copiato negli appunti!`);
+            }).catch(() => {
+                const textArea = document.createElement('textarea');
+                textArea.value = phone;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert(`📋 Numero ${phone} copiato negli appunti!`);
+            });
+        }
+
+        function copyEmail(email) {
+            navigator.clipboard.writeText(email).then(() => {
+                alert(`📋 Email ${email} copiata negli appunti!`);
+            }).catch(() => {
+                const textArea = document.createElement('textarea');
+                textArea.value = email;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert(`📋 Email ${email} copiata negli appunti!`);
+            });
+        }
+
+        function sendEmail(email, message) {
+            const emailLink = `mailto:${email}?subject=${encodeURIComponent('Rinnovo Tesseramento e Copertura Assicurativa')}&body=${encodeURIComponent(message)}`;
+            window.open(emailLink, '_blank');
+        }
+
+        function markAsContacted(memberKey) {
             const now = new Date();
+            const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
             contactLog[memberKey] = {
                 date: now.toDateString(),
                 time: now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
@@ -1427,12 +1571,7 @@
             localStorage.setItem('contactLog', JSON.stringify(contactLog));
             
             loadDashboard();
-            
-            if ((!member.whatsapp || member.whatsapp.length <= 5) && (!member.email || !member.email.includes('@'))) {
-                alert(`Attenzione: ${member.nome} ${member.cognome} non ha contatti validi!`);
-            } else {
-                alert(`✅ Promemoria inviato a ${member.nome} ${member.cognome}!`);
-            }
+            alert('✅ Cliente segnato come contattato!');
         }
 
         function resetContactStatus(memberKey) {
