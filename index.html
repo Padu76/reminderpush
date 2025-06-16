@@ -1,4 +1,46 @@
-<!DOCTYPE html>
+        main {
+            padding: 1rem;
+            max-width: 1400px;
+            margin: auto;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 1rem;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            position: sticky;
+            top: 1rem;
+            height: fit-content;
+            max-height: calc(100vh - 2rem);
+            overflow-y: auto;
+        }
+
+        .urgent-card {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(238, 90, 36, 0.3);
+        }
+
+        .urgent-card h3 {
+            margin: 0 0 1rem 0;
+            font-size: 1.1rem;
+        }
+
+        .urgent-list {
+            list-style: none;
+            padding: 0;
+            <!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -57,8 +99,113 @@
 
         main {
             padding: 1rem;
-            max-width: 1000px;
+            max-width: 1400px;
             margin: auto;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 1rem;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            position: sticky;
+            top: 1rem;
+            height: fit-content;
+            max-height: calc(100vh - 2rem);
+            overflow-y: auto;
+        }
+
+        .urgent-card {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(238, 90, 36, 0.3);
+        }
+
+        .urgent-card h3 {
+            margin: 0 0 1rem 0;
+            font-size: 1.1rem;
+        }
+
+        .urgent-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .urgent-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .urgent-item:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Popup styles */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .popup {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            animation: slideIn 0.3s ease;
+        }
+
+        .popup h3 {
+            color: var(--danger);
+            margin: 0 0 1rem 0;
+            font-size: 1.5rem;
+        }
+
+        .popup-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        .popup-actions button {
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
 
         .card {
@@ -185,7 +332,17 @@
             display: none;
         }
 
-        @media screen and (max-width: 600px) {
+        @media screen and (max-width: 768px) {
+            main {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .sidebar {
+                position: static;
+                max-height: none;
+            }
+
             body {
                 font-size: 1rem;
             }
@@ -207,6 +364,15 @@
             .stats {
                 grid-template-columns: 1fr;
             }
+
+            .popup {
+                width: 95%;
+                padding: 1.5rem;
+            }
+
+            .popup-actions {
+                flex-direction: column;
+            }
         }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
@@ -218,71 +384,81 @@
     </header>
     
     <main>
-        <!-- Statistiche cliccabili -->
-        <div class="stats">
-            <div class="stat-card clickable" onclick="setFilter('all')">
-                <div class="stat-number" id="totalMembers">0</div>
-                <div>Tesserati Totali</div>
+        <div class="main-content">
+            <!-- Statistiche cliccabili -->
+            <div class="stats">
+                <div class="stat-card clickable" onclick="setFilter('all')">
+                    <div class="stat-number" id="totalMembers">0</div>
+                    <div>Tesserati Totali</div>
+                </div>
+                <div class="stat-card clickable" onclick="setFilter('expiring')">
+                    <div class="stat-number" id="expiringCount">0</div>
+                    <div>In Scadenza (15gg)</div>
+                </div>
+                <div class="stat-card clickable" onclick="setFilter('expired')">
+                    <div class="stat-number" id="expiredCount">0</div>
+                    <div>Scaduti</div>
+                </div>
             </div>
-            <div class="stat-card clickable" onclick="setFilter('expiring')">
-                <div class="stat-number" id="expiringCount">0</div>
-                <div>In Scadenza (15gg)</div>
-            </div>
-            <div class="stat-card clickable" onclick="setFilter('expired')">
-                <div class="stat-number" id="expiredCount">0</div>
-                <div>Scaduti</div>
-            </div>
+
+            <!-- Import CSV (compatto) -->
+            <section class="card" style="padding: 1rem;">
+                <details>
+                    <summary style="cursor: pointer; font-weight: 600;">📥 Import CSV Tesserati</summary>
+                    <div class="csv-upload" style="margin-top: 1rem; padding: 1rem;">
+                        <input type="file" id="csvFile" accept=".csv" onchange="handleCSV(this)">
+                        <p style="margin: 0.5rem 0; font-size: 0.9rem;">Carica file CSV CSEN con formato: ASSOCIAZIONE;COGNOME;NOME;...</p>
+                    </div>
+                </details>
+            </section>
+
+            <!-- Form Nuovo Tesserato -->
+            <section class="card" id="memberForm">
+                <h2 id="formTitle">➕ Nuovo Tesserato</h2>
+                <label for="nome">Nome</label>
+                <input type="text" id="nome" placeholder="Mario">
+                
+                <label for="cognome">Cognome</label>
+                <input type="text" id="cognome" placeholder="Rossi">
+                
+                <label for="numeroTessera">Numero Tessera</label>
+                <input type="text" id="numeroTessera" placeholder="T001">
+                
+                <label for="dataIscrizione">Data Iscrizione</label>
+                <input type="date" id="dataIscrizione">
+                
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="mario.rossi@email.com">
+                
+                <label for="whatsapp">WhatsApp (solo numeri)</label>
+                <input type="text" id="whatsapp" placeholder="393331234567">
+                
+                <button onclick="saveMember()">💾 Salva Tesserato</button>
+                <button onclick="clearForm()" style="background: var(--secondary);">🗑️ Pulisci</button>
+            </section>
+
+            <!-- Filtri -->
+            <section id="filters">
+                <button onclick="setFilter('all')">📋 Tutti</button>
+                <button onclick="setFilter('active')">✅ Attivi</button>
+                <button onclick="setFilter('expiring')">⚠️ In Scadenza</button>
+                <button onclick="setFilter('expired')">❌ Scaduti</button>
+            </section>
+
+            <!-- Lista Tesserati -->
+            <section class="card">
+                <h2>👥 Lista Tesserati</h2>
+                <ul id="membersList"></ul>
+            </section>
         </div>
 
-        <!-- Import CSV (compatto) -->
-        <section class="card" style="padding: 1rem;">
-            <details>
-                <summary style="cursor: pointer; font-weight: 600;">📥 Import CSV Tesserati</summary>
-                <div class="csv-upload" style="margin-top: 1rem; padding: 1rem;">
-                    <input type="file" id="csvFile" accept=".csv" onchange="handleCSV(this)">
-                    <p style="margin: 0.5rem 0; font-size: 0.9rem;">Carica file CSV CSEN con formato: ASSOCIAZIONE;COGNOME;NOME;...</p>
-                </div>
-            </details>
-        </section>
-
-        <!-- Form Nuovo Tesserato -->
-        <section class="card" id="memberForm">
-            <h2 id="formTitle">➕ Nuovo Tesserato</h2>
-            <label for="nome">Nome</label>
-            <input type="text" id="nome" placeholder="Mario">
-            
-            <label for="cognome">Cognome</label>
-            <input type="text" id="cognome" placeholder="Rossi">
-            
-            <label for="numeroTessera">Numero Tessera</label>
-            <input type="text" id="numeroTessera" placeholder="T001">
-            
-            <label for="dataIscrizione">Data Iscrizione</label>
-            <input type="date" id="dataIscrizione">
-            
-            <label for="email">Email</label>
-            <input type="email" id="email" placeholder="mario.rossi@email.com">
-            
-            <label for="whatsapp">WhatsApp (solo numeri)</label>
-            <input type="text" id="whatsapp" placeholder="393331234567">
-            
-            <button onclick="saveMember()">💾 Salva Tesserato</button>
-            <button onclick="clearForm()" style="background: var(--secondary);">🗑️ Pulisci</button>
-        </section>
-
-        <!-- Filtri -->
-        <section id="filters">
-            <button onclick="setFilter('all')">📋 Tutti</button>
-            <button onclick="setFilter('active')">✅ Attivi</button>
-            <button onclick="setFilter('expiring')">⚠️ In Scadenza</button>
-            <button onclick="setFilter('expired')">❌ Scaduti</button>
-        </section>
-
-        <!-- Lista Tesserati -->
-        <section class="card">
-            <h2>👥 Lista Tesserati</h2>
-            <ul id="membersList"></ul>
-        </section>
+        <!-- Sidebar con scadenze urgenti -->
+        <div class="sidebar">
+            <div class="urgent-card">
+                <h3>🚨 Scadenze Urgenti</h3>
+                <ul class="urgent-list" id="urgentList"></ul>
+            </div>
+        </div>
     </main>
 
     <script>
@@ -370,25 +546,34 @@
             document.getElementById('formTitle').textContent = '➕ Nuovo Tesserato';
         }
 
-        // Carica tesserati
+        // Carica tesserati e aggiorna sidebar
         function loadMembers() {
             const members = JSON.parse(localStorage.getItem('members') || '[]');
             const list = document.getElementById('membersList');
+            const urgentList = document.getElementById('urgentList');
             list.innerHTML = '';
+            urgentList.innerHTML = '';
 
             let totalMembers = 0;
             let expiringCount = 0;
             let expiredCount = 0;
+            let urgentMembers = [];
 
             members.forEach((member, index) => {
                 const isExp = isExpired(member.dataScadenza);
                 const isExpiring15 = isExpiring(member.dataScadenza, 15);
+                const daysLeft = Math.ceil((new Date(member.dataScadenza) - new Date()) / (1000 * 60 * 60 * 24));
                 
                 totalMembers++;
                 if (isExp) expiredCount++;
                 else if (isExpiring15) expiringCount++;
 
-                // Filtri
+                // Aggiungi alla lista urgenti se scade in meno di 7 giorni o è scaduto
+                if (isExp || daysLeft <= 7) {
+                    urgentMembers.push({...member, index, daysLeft, isExpired: isExp});
+                }
+
+                // Filtri per lista principale
                 if (filter === 'active' && (isExp || isExpiring15)) return;
                 if (filter === 'expiring' && !isExpiring15) return;
                 if (filter === 'expired' && !isExp) return;
@@ -400,7 +585,6 @@
                 else if (isExpiring15) li.classList.add('expiring');
 
                 const statusText = isExp ? '❌ Scaduto' : isExpiring15 ? '⚠️ In Scadenza' : '✅ Attivo';
-                const daysLeft = isExp ? 0 : Math.ceil((new Date(member.dataScadenza) - new Date()) / (1000 * 60 * 60 * 24));
 
                 li.innerHTML = `
                     <strong>${member.nome} ${member.cognome}</strong> - Tessera: ${member.numeroTessera}<br>
@@ -416,6 +600,26 @@
                 `;
                 list.appendChild(li);
             });
+
+            // Popola sidebar urgenti
+            if (urgentMembers.length === 0) {
+                urgentList.innerHTML = '<li class="urgent-item">✅ Nessuna scadenza urgente</li>';
+            } else {
+                urgentMembers.sort((a, b) => a.daysLeft - b.daysLeft).forEach(member => {
+                    const li = document.createElement('li');
+                    li.className = 'urgent-item';
+                    const statusIcon = member.isExpired ? '❌' : '⚠️';
+                    const daysText = member.isExpired ? 'SCADUTO' : `${member.daysLeft} giorni`;
+                    
+                    li.innerHTML = `
+                        <strong>${statusIcon} ${member.nome} ${member.cognome}</strong><br>
+                        <small>Tessera: ${member.numeroTessera}</small><br>
+                        <small>${daysText}</small><br>
+                        <button onclick="sendAlert(${member.index})" style="background: rgba(255,255,255,0.3); color: white; font-size: 0.8rem; padding: 0.3rem 0.5rem; margin-top: 0.3rem;">📱 Alert</button>
+                    `;
+                    urgentList.appendChild(li);
+                });
+            }
 
             // Aggiorna statistiche
             document.getElementById('totalMembers').textContent = totalMembers;
@@ -574,18 +778,62 @@
             loadMembers();
         }
 
-        // Controllo automatico scadenze
+        // Popup automatici per scadenze
+        function showExpirationPopup(member, daysLeft) {
+            const overlay = document.createElement('div');
+            overlay.className = 'popup-overlay';
+            
+            const isExpired = daysLeft <= 0;
+            const title = isExpired ? '🚨 TESSERA SCADUTA!' : '⚠️ SCADENZA IMMINENTE!';
+            const message = isExpired 
+                ? `La tessera di ${member.nome} ${member.cognome} è SCADUTA`
+                : `La tessera di ${member.nome} ${member.cognome} scade tra ${daysLeft} giorni`;
+            
+            overlay.innerHTML = `
+                <div class="popup">
+                    <h3>${title}</h3>
+                    <p><strong>${member.nome} ${member.cognome}</strong></p>
+                    <p>Tessera: ${member.numeroTessera}</p>
+                    <p>Scadenza: ${formatDate(member.dataScadenza)}</p>
+                    <p>${message}</p>
+                    <div class="popup-actions">
+                        <button onclick="closePopup(); sendAlert(${member.index})" class="warning">📱 Invia Alert</button>
+                        <button onclick="closePopup(); renewMember(${member.index})" class="primary">🔄 Rinnova</button>
+                        <button onclick="closePopup()" style="background: var(--secondary);">⏰ Dopo</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(overlay);
+            
+            // Segna come mostrato per non ripetere
+            const lastShown = JSON.parse(localStorage.getItem('popupShown') || '{}');
+            lastShown[member.numeroTessera] = new Date().toDateString();
+            localStorage.setItem('popupShown', JSON.stringify(lastShown));
+        }
+
+        function closePopup() {
+            const overlay = document.querySelector('.popup-overlay');
+            if (overlay) {
+                overlay.remove();
+            }
+        }
+
+        // Controllo automatico scadenze con popup
         function checkExpirations() {
             const members = JSON.parse(localStorage.getItem('members') || '[]');
-            const today = new Date();
+            const lastShown = JSON.parse(localStorage.getItem('popupShown') || '{}');
+            const today = new Date().toDateString();
             
-            members.forEach(member => {
-                const daysLeft = Math.ceil((new Date(member.dataScadenza) - today) / (1000 * 60 * 60 * 24));
+            members.forEach((member, index) => {
+                const daysLeft = Math.ceil((new Date(member.dataScadenza) - new Date()) / (1000 * 60 * 60 * 24));
                 
-                // Alert automatici (7, 15, 30 giorni)
-                if ([7, 15, 30].includes(daysLeft)) {
-                    console.log(`Alert: ${member.nome} ${member.cognome} scade tra ${daysLeft} giorni`);
-                    // Qui potresti aggiungere logica per inviare alert automatici
+                // Mostra popup per scadenze urgenti (7 giorni o scaduto) solo una volta al giorno
+                if ((daysLeft <= 7 || daysLeft <= 0) && lastShown[member.numeroTessera] !== today) {
+                    setTimeout(() => {
+                        showExpirationPopup({...member, index}, daysLeft);
+                    }, 2000); // Aspetta 2 secondi dopo il caricamento
+                    return; // Mostra solo un popup alla volta
                 }
             });
         }
@@ -604,7 +852,12 @@
                 document.body.classList.add("dark");
             }
             loadMembers();
-            setInterval(checkExpirations, 60000); // Controlla ogni minuto
+            
+            // Controlla scadenze all'avvio
+            setTimeout(checkExpirations, 1000);
+            
+            // Controlla scadenze ogni 10 minuti
+            setInterval(checkExpirations, 10 * 60 * 1000);
         };
     </script>
 </body>
