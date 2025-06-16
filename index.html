@@ -229,7 +229,7 @@
             <h2>📥 Import CSV Tesserati</h2>
             <div class="csv-upload">
                 <input type="file" id="csvFile" accept=".csv" onchange="handleCSV(this)">
-                <p>Carica file CSV con colonne: nome, cognome, data_iscrizione, numero_tessera</p>
+                <p>Carica file CSV CSEN con formato: ASSOCIAZIONE;COGNOME;NOME;...</p>
             </div>
         </section>
 
@@ -490,32 +490,68 @@
                 
                 let imported = 0;
                 
+                // Prima riga contiene gli header
+                if (lines.length < 2) {
+                    alert('File CSV vuoto o non valido');
+                    return;
+                }
+                
                 for (let i = 1; i < lines.length; i++) { // Salta header
                     const line = lines[i].trim();
                     if (!line) continue;
                     
-                    const [nome, cognome, dataIscrizione, numeroTessera] = line.split(',').map(s => s.trim());
+                    // Split per punto e virgola (formato CSEN)
+                    const fields = line.split(';').map(s => s.trim());
                     
-                    if (nome && cognome && dataIscrizione && numeroTessera) {
-                        const dataScadenza = calculateExpiry(dataIscrizione);
+                    // Mappa dei campi: ASSOCIAZIONE;COGNOME;NOME;SESSO;DATA DI NASCITA;LUOGO DI NASCITA;CODICE FISCALE;DATA DI INSERIMENTO;DATA DI RILASCIO;NUMERO TESSERA;DISCIPLINE;QUALIFICA;TESSERAMENTO;TELEFONO;E-MAIL;ISTRUTTORE
+                    if (fields.length >= 15) {
+                        const associazione = fields[0];
+                        const cognome = fields[1];
+                        const nome = fields[2];
+                        const dataInserimento = fields[7]; // DATA DI INSERIMENTO
+                        const numeroTessera = fields[9]; // NUMERO TESSERA
+                        const telefono = fields[13]; // TELEFONO
+                        const email = fields[14]; // E-MAIL
                         
-                        members.push({
-                            nome,
-                            cognome,
-                            numeroTessera,
-                            dataIscrizione,
-                            dataScadenza: dataScadenza.toISOString(),
-                            email: '',
-                            whatsapp: '',
-                            status: 'attivo'
-                        });
-                        imported++;
+                        if (nome && cognome && dataInserimento && numeroTessera) {
+                            // Controlla se esiste già (evita duplicati)
+                            const exists = members.some(m => m.numeroTessera === numeroTessera);
+                            if (exists) continue;
+                            
+                            // Converti data dal formato dd/mm/yyyy a yyyy-mm-dd
+                            let formattedDate = dataInserimento;
+                            if (dataInserimento.includes('/')) {
+                                const [day, month, year] = dataInserimento.split('/');
+                                formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                            }
+                            
+                            const dataScadenza = calculateExpiry(formattedDate);
+                            
+                            // Pulisci telefono (rimuovi spazi e caratteri non numerici)
+                            const cleanPhone = telefono ? telefono.replace(/\D/g, '') : '';
+                            
+                            members.push({
+                                nome,
+                                cognome,
+                                numeroTessera,
+                                dataIscrizione: formattedDate,
+                                dataScadenza: dataScadenza.toISOString(),
+                                email: email || '',
+                                whatsapp: cleanPhone || '',
+                                status: 'attivo',
+                                associazione: associazione || ''
+                            });
+                            imported++;
+                        }
                     }
                 }
                 
                 localStorage.setItem('members', JSON.stringify(members));
                 loadMembers();
-                alert(`Importati ${imported} tesserati dal CSV!`);
+                alert(`Importati ${imported} tesserati dal CSV CSEN!`);
+                
+                // Reset del file input
+                input.value = '';
             };
             reader.readAsText(file);
         }
