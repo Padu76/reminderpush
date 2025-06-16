@@ -1124,17 +1124,31 @@
             const daysLeft = getDaysLeft(member.dataScadenza);
             const timeText = isExpired ? 'SCADUTO' : `${daysLeft} giorni`;
             
+            // Controlla se è stato contattato
+            const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
+            const memberKey = `${member.numeroTessera}_${member.dataScadenza}`;
+            const isContacted = contactLog[memberKey];
+            
+            if (isContacted) {
+                div.classList.add('contacted');
+            }
+            
+            const contactedBadge = isContacted ? `<div class="contacted-badge">✓ Contattato</div>` : '';
+            const contactedInfo = isContacted ? `<div class="contacted-info">Promemoria inviato il ${formatDate(isContacted.date)} alle ${isContacted.time}</div>` : '';
+            
             div.innerHTML = `
+                ${contactedBadge}
                 <div class="member-name">${member.nome} ${member.cognome}</div>
                 <div class="member-details">
                     Tessera: ${member.numeroTessera}<br>
                     Scadenza: ${formatDate(member.dataScadenza)} - ${timeText}<br>
                     ${member.email ? `📧 ${member.email}` : ''} ${member.whatsapp ? `📱 ${member.whatsapp}` : ''}
+                    ${contactedInfo}
                 </div>
                 <div class="member-actions">
                     <div style="display: flex; flex-direction: column; align-items: center;">
                         <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Promemoria</small>
-                        <button onclick="sendAlert(${member.index})">📩</button>
+                        <button onclick="sendAlert(${member.index})" ${isContacted ? 'style="opacity: 0.6;"' : ''}>📩</button>
                     </div>
                     <div style="display: flex; flex-direction: column; align-items: center;">
                         <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Rinnova</small>
@@ -1144,6 +1158,12 @@
                         <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Modifica</small>
                         <button onclick="editMember(${member.index})">✏️</button>
                     </div>
+                    ${isContacted ? `
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Reset</small>
+                        <button onclick="resetContactStatus('${memberKey}')" style="background: #ffc107; font-size: 0.8rem;">🔄</button>
+                    </div>
+                    ` : ''}
                 </div>
             `;
             
@@ -1256,10 +1276,21 @@
             document.getElementById('modalTitle').textContent = '➕ Nuovo Tesserato';
         }
 
-        // Invia promemoria
+        // Invia promemoria con tracking
         function sendAlert(index) {
             const members = JSON.parse(localStorage.getItem('members') || '[]');
             const member = members[index];
+            
+            // Controlla se già contattato oggi
+            const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
+            const memberKey = `${member.numeroTessera}_${member.dataScadenza}`;
+            const today = new Date().toDateString();
+            
+            if (contactLog[memberKey] && contactLog[memberKey].date === today) {
+                if (!confirm(`Hai già inviato un promemoria a ${member.nome} ${member.cognome} oggi alle ${contactLog[memberKey].time}. Vuoi inviarlo di nuovo?`)) {
+                    return;
+                }
+            }
             
             const messageToClient = `Ciao ${member.nome}, il tuo tesseramento e copertura assicurativa (n. ${member.numeroTessera}) scadono il ${formatDate(member.dataScadenza)}. Contattaci per il rinnovo!`;
             const messageToMe = `ALERT: Il tesserato ${member.nome} ${member.cognome} (n. ${member.numeroTessera}) scade il ${formatDate(member.dataScadenza)}`;
@@ -1281,22 +1312,60 @@
                 window.open(myLink, '_blank');
             }, 1000);
             
+            // Segna come contattato
+            const now = new Date();
+            contactLog[memberKey] = {
+                date: now.toDateString(),
+                time: now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+                timestamp: now.getTime()
+            };
+            localStorage.setItem('contactLog', JSON.stringify(contactLog));
+            
+            // Ricarica dashboard per mostrare il badge "contattato"
+            loadDashboard();
+            
             if ((!member.whatsapp || member.whatsapp.length <= 5) && (!member.email || !member.email.includes('@'))) {
                 alert(`Attenzione: ${member.nome} ${member.cognome} non ha contatti validi!`);
+            } else {
+                // Mostra conferma
+                alert(`✅ Promemoria inviato a ${member.nome} ${member.cognome}!`);
             }
         }
 
-        // Rinnova tesserato
+        // Reset stato contatto
+        function resetContactStatus(memberKey) {
+            if (confirm('Vuoi resettare lo stato "contattato" per questo tesserato?')) {
+                const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
+                delete contactLog[memberKey];
+                localStorage.setItem('contactLog', JSON.stringify(contactLog));
+                loadDashboard();
+                alert('✅ Stato contatto resettato!');
+            }
+        }
+
+        // Rinnova tesserato (resetta anche il tracking)
         function renewMember(index) {
             if (confirm('Rinnovare il tesseramento per 1 anno?')) {
                 const members = JSON.parse(localStorage.getItem('members') || '[]');
+                const oldExpiry = members[index].dataScadenza;
+                
                 const currentExpiry = new Date(members[index].dataScadenza);
                 currentExpiry.setFullYear(currentExpiry.getFullYear() + 1);
                 members[index].dataScadenza = currentExpiry.toISOString();
                 members[index].dataIscrizione = new Date().toISOString().split('T')[0];
                 localStorage.setItem('members', JSON.stringify(members));
+                
+                // Reset del tracking per la nuova scadenza
+                const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
+                const oldKey = `${members[index].numeroTessera}_${oldExpiry}`;
+                const newKey = `${members[index].numeroTessera}_${members[index].dataScadenza}`;
+                
+                // Rimuovi il vecchio tracking
+                delete contactLog[oldKey];
+                localStorage.setItem('contactLog', JSON.stringify(contactLog));
+                
                 loadDashboard();
-                alert('Tesseramento rinnovato con successo!');
+                alert('✅ Tesseramento rinnovato con successo! Tracking contatti resettato.');
             }
         }
 
