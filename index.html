@@ -1102,7 +1102,7 @@
             const members = JSON.parse(localStorage.getItem('members') || '[]');
             const member = members[index];
             
-            const messageToClient = `Ciao ${member.nome}, il tuo tesseramento (n. ${member.numeroTessera}) scade il ${formatDate(member.dataScadenza)}. Contattaci per il rinnovo!`;
+            const messageToClient = `Ciao ${member.nome}, il tuo tesseramento e copertura assicurativa (n. ${member.numeroTessera}) scadono il ${formatDate(member.dataScadenza)}. Contattaci per il rinnovo!`;
             const messageToMe = `ALERT: Il tesserato ${member.nome} ${member.cognome} (n. ${member.numeroTessera}) scade il ${formatDate(member.dataScadenza)}`;
 
             // Invia a cliente
@@ -1112,7 +1112,7 @@
             }
 
             if (member.email && member.email.includes('@')) {
-                const emailLink = `mailto:${member.email}?subject=${encodeURIComponent('Rinnovo Tesseramento')}&body=${encodeURIComponent(messageToClient)}`;
+                const emailLink = `mailto:${member.email}?subject=${encodeURIComponent('Rinnovo Tesseramento e Copertura Assicurativa')}&body=${encodeURIComponent(messageToClient)}`;
                 window.open(emailLink, '_blank');
             }
 
