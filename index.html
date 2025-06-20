@@ -1,1102 +1,4 @@
-                    ${member.email && member.email.includes('@') ? `
-                    <div style="margin: 1rem 0;">
-                        <h3>📧 Email</h3>
-                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                            <button onclick="sendEmail('${member.email}', '${messageToClient.replace(/'/g, "\\'")}')">
-                                📧 Invia Email
-                            </button>
-                            <button onclick="copyEmail('${member.email}')">
-                                📋 Copia Email
-                            </button>
-                        </div>
-                    </div>
-                    ` : ''}
-                    
-                    <div style="margin: 1.5rem 0;">
-                        <h3>📲 Notifica a Me</h3>
-                        <button onclick="sendWhatsApp('3478881515', '${messageToMe.replace(/'/g, "\\'")}', false)" style="background: var(--warning);">
-                            📩 Invia Notifica a Me
-                        </button>
-                    </div>
-                    
-                    <div style="text-align: center; margin-top: 2rem; border-top: 1px solid var(--secondary); padding-top: 1rem;">
-                        <button onclick="markAsContacted('${memberKey}'); closeContactModal();" style="background: var(--primary);">
-                            ✅ Segna come Contattato
-                        </button>
-                        <button onclick="closeContactModal()" class="secondary">
-                            ❌ Annulla
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            document.body.appendChild(modal);
-        }
-
-        function closeContactModal() {
-            const modal = document.getElementById('contactModal');
-            if (modal) modal.remove();
-        }
-
-        function sendWhatsApp(phone, message, isClient) {
-            // Prova prima il metodo standard
-            const link1 = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-            window.open(link1, '_blank');
-            
-            // Se è un cliente, offri alternative dopo 2 secondi
-            if (isClient) {
-                setTimeout(() => {
-                    if (confirm('Il messaggio non si è pre-compilato? Clicca OK per aprire WhatsApp senza messaggio e potrai incollare il testo.')) {
-                        openWhatsAppManual(phone);
-                    }
-                }, 2000);
-            }
-        }
-
-        function openWhatsAppManual(phone) {
-            // Apre WhatsApp senza messaggio precompilato
-            const link = `https://wa.me/${phone}`;
-            window.open(link, '_blank');
-            
-            // Mostra istruzioni
-            setTimeout(() => {
-                alert('📱 WhatsApp aperto! Ora:\n1. Copia il messaggio dal pulsante "📋 Copia Messaggio"\n2. Incollalo nella chat\n3. Invia');
-            }, 1000);
-        }
-
-        function copyMessage(message, type) {
-            navigator.clipboard.writeText(message).then(() => {
-                alert(`📋 Messaggio copiato! Ora incollalo nella chat ${type === 'cliente' ? 'del cliente' : ''}`);
-            }).catch(() => {
-                // Fallback per browser che non supportano clipboard API
-                const textArea = document.createElement('textarea');
-                textArea.value = message;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                alert(`📋 Messaggio copiato! Ora incollalo nella chat ${type === 'cliente' ? 'del cliente' : ''}`);
-            });
-        }
-
-        function copyPhoneNumber(phone) {
-            navigator.clipboard.writeText(phone).then(() => {
-                alert(`📋 Numero ${phone} copiato negli appunti!`);
-            }).catch(() => {
-                const textArea = document.createElement('textarea');
-                textArea.value = phone;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                alert(`📋 Numero ${phone} copiato negli appunti!`);
-            });
-        }
-
-        function copyEmail(email) {
-            navigator.clipboard.writeText(email).then(() => {
-                alert(`📋 Email ${email} copiata negli appunti!`);
-            }).catch(() => {
-                const textArea = document.createElement('textarea');
-                textArea.value = email;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                alert(`📋 Email ${email} copiata negli appunti!`);
-            });
-        }
-
-        function sendEmail(email, message) {
-            const emailLink = `mailto:${email}?subject=${encodeURIComponent('Rinnovo Tesseramento e Copertura Assicurativa')}&body=${encodeURIComponent(message)}`;
-            window.open(emailLink, '_blank');
-        }
-
-        function markAsContacted(memberKey) {
-            const now = new Date();
-            const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
-            contactLog[memberKey] = {
-                date: now.toDateString(),
-                time: now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
-                timestamp: now.getTime()
-            };
-            localStorage.setItem('contactLog', JSON.stringify(contactLog));
-            
-            // DISABILITA COMPLETAMENTE tutti gli alert per questo tesserato
-            const popupShown = JSON.parse(localStorage.getItem('popupShown') || '{}');
-            const lastNotified = JSON.parse(localStorage.getItem('lastNotified') || '{}');
-            
-            // Trova il tesserato dal memberKey (formato: numeroTessera_dataScadenza)
-            const [numeroTessera, dataScadenza] = memberKey.split('_');
-            const member = allMembers.find(m => m.numeroTessera === numeroTessera && m.dataScadenza === dataScadenza);
-            
-            if (member) {
-                // Disabilita PERMANENTEMENTE fino al rinnovo (imposta data molto futura)
-                const farFuture = new Date();
-                farFuture.setFullYear(farFuture.getFullYear() + 1); // 1 anno nel futuro
-                
-                popupShown[member.numeroTessera] = farFuture.toDateString();
-                lastNotified[member.numeroTessera] = farFuture.toDateString();
-                
-                localStorage.setItem('popupShown', JSON.stringify(popupShown));
-                localStorage.setItem('lastNotified', JSON.stringify(lastNotified));
-                
-                console.log(`🚫 Alert DISABILITATI PERMANENTEMENTE per ${member.nome} ${member.cognome} fino al rinnovo`);
-            }
-            
-            loadDashboard();
-            alert('✅ Cliente contattato! Alert disabilitati fino al rinnovo della tessera.');
-        }
-
-        function resetContactStatus(memberKey) {
-            if (confirm('Vuoi resettare lo stato "contattato" per permettere un nuovo invio promemoria?')) {
-                const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
-                delete contactLog[memberKey];
-                localStorage.setItem('contactLog', JSON.stringify(contactLog));
-                loadDashboard();
-                alert('✅ Stato invio resettato! Ora puoi inviare di nuovo il promemoria.');
-            }
-        }
-
-        async function renewMember(index) {
-            if (confirm('Rinnovare il tesseramento per 1 anno?')) {
-                const member = allMembers[index];
-                const oldExpiry = member.dataScadenza;
-                const oldMemberKey = `${member.numeroTessera}_${oldExpiry}`;
-                
-                const currentExpiry = new Date(member.dataScadenza);
-                currentExpiry.setFullYear(currentExpiry.getFullYear() + 1);
-                member.dataScadenza = currentExpiry.toISOString();
-                member.dataIscrizione = new Date().toISOString().split('T')[0];
-                
-                await FirebaseDB.saveMember(member);
-                
-                // PULISCI il tracking della vecchia scadenza quando rinnovi
-                const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
-                const popupShown = JSON.parse(localStorage.getItem('popupShown') || '{}');
-                const lastNotified = JSON.parse(localStorage.getItem('lastNotified') || '{}');
-                
-                // Rimuovi il tracking della vecchia scadenza
-                delete contactLog[oldMemberKey];
-                
-                // Reset anche popup e notifiche per permettere nuovi alert sulla nuova scadenza
-                delete popupShown[member.numeroTessera];
-                delete lastNotified[member.numeroTessera];
-                
-                localStorage.setItem('contactLog', JSON.stringify(contactLog));
-                localStorage.setItem('popupShown', JSON.stringify(popupShown));
-                localStorage.setItem('lastNotified', JSON.stringify(lastNotified));
-                
-                await loadDashboard();
-                alert('✅ Tesseramento rinnovato! Alert riabilitati per la nuova scadenza.');
-            }
-        }
-
-        async function editMember(index) {
-            const member = allMembers[index];
-            
-            document.getElementById('nome').value = member.nome;
-            document.getElementById('cognome').value = member.cognome;
-            document.getElementById('numeroTessera').value = member.numeroTessera;
-            document.getElementById('dataIscrizione').value = member.dataIscrizione;
-            document.getElementById('email').value = member.email || '';
-            document.getElementById('whatsapp').value = member.whatsapp || '';
-            document.getElementById('codiceFiscale').value = member.codiceFiscale || '';
-            
-            editingIndex = index;
-            document.getElementById('modalTitle').textContent = '✏️ Modifica Tesserato';
-            openModal('memberModal');
-        }
-
-        async function deleteMember(index) {
-            if (confirm('Eliminare definitivamente questo tesserato?')) {
-                const member = allMembers[index];
-                
-                if (member.id) {
-                    await FirebaseDB.deleteMember(member.id);
-                }
-                
-                await loadDashboard();
-                alert('✅ Tesserato eliminato!');
-            }
-        }
-
-        function handleCSV(input) {
-            const file = input.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                const csv = e.target.result;
-                const lines = csv.split('\n');
-                
-                let imported = 0;
-                
-                if (lines.length < 2) {
-                    alert('File CSV vuoto o non valido');
-                    return;
-                }
-                
-                // Debug: mostra la prima riga per vedere i campi disponibili
-                console.log('📊 Header CSV:', lines[0]);
-                console.log('📊 Primo dato:', lines[1]);
-                
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
-                    
-                    const fields = line.split(';').map(s => s.trim());
-                    
-                    if (fields.length >= 15) {
-                        const associazione = fields[0];          // Colonna 0: Associazione
-                        const cognome = fields[1];               // Colonna 1: Cognome
-                        const nome = fields[2];                  // Colonna 2: Nome
-                        const codiceFiscale = fields[3];         // Colonna 3: Codice Fiscale
-                        // fields[4] = Data Nascita
-                        // fields[5] = Luogo Nascita  
-                        // fields[6] = Provincia
-                        const dataInserimento = fields[7];       // Colonna 7: Data Inserimento
-                        // fields[8] = Anno Sociale
-                        const numeroTessera = fields[9];         // Colonna 9: Numero Tessera
-                        // fields[10] = Tipo Tessera
-                        // fields[11] = Codice Disciplina
-                        // fields[12] = Descrizione Disciplina
-                        const telefono = fields[13];             // Colonna 13: Telefono
-                        const email = fields[14];                // Colonna 14: Email
-                        
-                        if (nome && cognome && dataInserimento && numeroTessera) {
-                            const exists = allMembers.some(m => m.numeroTessera === numeroTessera);
-                            if (exists) continue;
-                            
-                            let formattedDate = dataInserimento;
-                            if (dataInserimento.includes('/')) {
-                                const [day, month, year] = dataInserimento.split('/');
-                                formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                            }
-                            
-                            const dataScadenza = calculateExpiry(formattedDate);
-                            const cleanPhone = telefono ? telefono.replace(/\D/g, '') : '';
-                            
-                            const member = {
-                                nome,
-                                cognome,
-                                numeroTessera,
-                                dataIscrizione: formattedDate,
-                                dataScadenza: dataScadenza.toISOString(),
-                                email: email || '',
-                                whatsapp: cleanPhone || '',
-                                codiceFiscale: codiceFiscale || '',
-                                status: 'attivo',
-                                associazione: associazione || ''
-                            };
-                            
-                            await FirebaseDB.saveMember(member);
-                            imported++;
-                        }
-                    }
-                }
-                
-                await loadDashboard();
-                alert(`Importati ${imported} tesserati dal CSV CSEN!`);
-                input.value = '';
-            };
-            reader.readAsText(file);
-        }
-
-        function showExpirationPopup(member, daysLeft) {
-            if (document.querySelector('.popup-overlay')) return;
-            
-            const overlay = document.createElement('div');
-            overlay.className = 'popup-overlay';
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.8);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 2000;
-                animation: fadeIn 0.3s ease;
-            `;
-            
-            const isExpired = daysLeft <= 0;
-            const title = isExpired ? '🚨 TESSERA SCADUTA!' : '⚠️ SCADENZA IMMINENTE!';
-            const message = isExpired 
-                ? `La tessera di ${member.nome} ${member.cognome} è SCADUTA`
-                : `La tessera di ${member.nome} ${member.cognome} scade tra ${daysLeft} giorni`;
-            
-            overlay.innerHTML = `
-                <div style="
-                    background: var(--card-bg);
-                    padding: 2rem;
-                    border-radius: 15px;
-                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-                    max-width: 400px;
-                    width: 90%;
-                    text-align: center;
-                    animation: slideIn 0.3s ease;
-                ">
-                    <h3 style="color: ${isExpired ? '#f44336' : '#ff9800'}; margin: 0 0 1rem 0; font-size: 1.5rem;">${title}</h3>
-                    <p style="margin: 0.5rem 0;"><strong>${member.nome} ${member.cognome}</strong></p>
-                    <p style="margin: 0.5rem 0;">Tessera: ${member.numeroTessera}</p>
-                    <p style="margin: 0.5rem 0;">Scadenza: ${formatDate(member.dataScadenza)}</p>
-                    <p style="margin: 1rem 0; font-weight: bold;">${message}</p>
-                    <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem; flex-wrap: wrap;">
-                        <button onclick="closePopup(); sendAlert(${member.index})" style="background: #ff9800; color: white; padding: 0.8rem 1.2rem; border: none; border-radius: 8px; cursor: pointer;">📩 Promemoria</button>
-                        <button onclick="closePopup(); renewMember(${member.index})" style="background: #25D366; color: white; padding: 0.8rem 1.2rem; border: none; border-radius: 8px; cursor: pointer;">🔄 Rinnova</button>
-                        <button onclick="closePopup()" style="background: #ccc; color: #333; padding: 0.8rem 1.2rem; border: none; border-radius: 8px; cursor: pointer;">⏰ Dopo</button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(overlay);
-            
-            const lastShown = JSON.parse(localStorage.getItem('popupShown') || '{}');
-            lastShown[member.numeroTessera] = new Date().toDateString();
-            localStorage.setItem('popupShown', JSON.stringify(lastShown));
-        }
-
-        function closePopup() {
-            const overlay = document.querySelector('.popup-overlay');
-            if (overlay) {
-                overlay.remove();
-            }
-        }
-
-        function checkExpirations() {
-            const lastShown = JSON.parse(localStorage.getItem('popupShown') || '{}');
-            const lastNotified = JSON.parse(localStorage.getItem('lastNotified') || '{}');
-            const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
-            const today = new Date().toDateString();
-            
-            allMembers.forEach((member, index) => {
-                const daysLeft = getDaysLeft(member.dataScadenza);
-                const memberKey = `${member.numeroTessera}_${member.dataScadenza}`;
-                
-                // Se è stato contattato per questa scadenza specifica, NON mostrare più alert
-                const wasContacted = contactLog[memberKey];
-                
-                if (wasContacted) {
-                    // Cliente già contattato per questa scadenza = NIENTE ALERT
-                    return;
-                }
-                
-                // POPUP: Solo se non contattato E non mostrato oggi
-                const shouldShowPopup = (daysLeft <= 7 || daysLeft <= 0) && 
-                                       lastShown[member.numeroTessera] !== today;
-                
-                if (shouldShowPopup) {
-                    setTimeout(() => {
-                        showExpirationPopup({...member, index}, daysLeft);
-                    }, 2000);
-                    return; // Mostra solo un popup alla volta
-                }
-                
-                // NOTIFICHE BROWSER: Solo se non contattato E non notificato oggi
-                if (Notification.permission === 'granted') {
-                    const shouldNotify = (daysLeft === 7 || daysLeft === 3 || daysLeft === 1 || daysLeft <= 0) && 
-                                       lastNotified[member.numeroTessera] !== today;
-                    
-                    if (shouldNotify) {
-                        sendBrowserNotification({...member, index}, daysLeft);
-                        
-                        lastNotified[member.numeroTessera] = today;
-                        localStorage.setItem('lastNotified', JSON.stringify(lastNotified));
-                    }
-                }
-            });
-        }
-
-        function toggleTheme() {
-            document.body.classList.toggle("dark");
-            const current = document.body.classList.contains("dark") ? "dark" : "light";
-            localStorage.setItem("theme", current);
-        }
-
-        window.onclick = function(event) {
-            const modals = document.querySelectorAll('.modal');
-            modals.forEach(modal => {
-                if (event.target === modal) {
-                    modal.style.display = 'none';
-                }
-            });
-        }
-
-        window.onload = async () => {
-            const savedTheme = localStorage.getItem("theme");
-            if (savedTheme === "dark") {
-                document.body.classList.add("dark");
-            }
-            
-            updateNotificationStatus();
-            
-            const hasMigrated = await migrateLocalDataToFirebase();
-            
-            await loadDashboard();
-            
-            setTimeout(checkExpirations, 1000);
-            
-            setInterval(checkExpirations, 10 * 60 * 1000);
-            
-            console.log('✅ App caricata con Firebase!');
-        };
-    </script>
-</body>
-</html>
-        };
-
-        // Inizializza Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-
-        // Database helper functions
-        const FirebaseDB = {
-            async getMembers() {
-                try {
-                    console.log('🔥 Caricamento dati da Firebase...');
-                    const snapshot = await db.collection('members').get();
-                    console.log('✅ Firebase connesso! Documenti trovati:', snapshot.docs.length);
-                    return snapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
-                    }));
-                } catch (error) {
-                    console.error('❌ Errore Firebase:', error);
-                    console.log('🔄 Usando localStorage come fallback...');
-                    return JSON.parse(localStorage.getItem('members') || '[]');
-                }
-            },
-
-            async saveMember(member) {
-                try {
-                    if (member.id) {
-                        await db.collection('members').doc(member.id).update(member);
-                    } else {
-                        await db.collection('members').add(member);
-                    }
-                    return true;
-                } catch (error) {
-                    console.error('Errore salvataggio membro:', error);
-                    const members = JSON.parse(localStorage.getItem('members') || '[]');
-                    if (member.id) {
-                        const index = members.findIndex(m => m.id === member.id);
-                        if (index >= 0) members[index] = member;
-                    } else {
-                        member.id = Date.now().toString();
-                        members.push(member);
-                    }
-                    localStorage.setItem('members', JSON.stringify(members));
-                    return false;
-                }
-            },
-
-            async deleteMember(memberId) {
-                try {
-                    await db.collection('members').doc(memberId).delete();
-                    return true;
-                } catch (error) {
-                    console.error('Errore eliminazione membro:', error);
-                    return false;
-                }
-            },
-
-            async getContactLog() {
-                try {
-                    const snapshot = await db.collection('contactLog').get();
-                    const log = {};
-                    snapshot.docs.forEach(doc => {
-                        log[doc.id] = doc.data();
-                    });
-                    return log;
-                } catch (error) {
-                    console.error('Errore caricamento contact log:', error);
-                    return JSON.parse(localStorage.getItem('contactLog') || '{}');
-                }
-            },
-
-            async saveContactLog(key, data) {
-                try {
-                    await db.collection('contactLog').doc(key).set(data);
-                    return true;
-                } catch (error) {
-                    console.error('Errore salvataggio contact log:', error);
-                    return false;
-                }
-            }
-        };
-
-        // Migrazione dati da localStorage a Firebase
-        async function migrateLocalDataToFirebase() {
-            const localMembers = JSON.parse(localStorage.getItem('members') || '[]');
-            
-            if (localMembers.length > 0) {
-                console.log(`📦 Trovati ${localMembers.length} tesserati in localStorage. Controllo duplicati...`);
-                
-                const existingMembers = await FirebaseDB.getMembers();
-                const existingTessere = new Set(existingMembers.map(m => m.numeroTessera));
-                
-                const newMembers = localMembers.filter(member => !existingTessere.has(member.numeroTessera));
-                
-                if (newMembers.length === 0) {
-                    console.log('✅ Tutti i tesserati sono già su Firebase. Nessuna migrazione necessaria.');
-                    return false;
-                }
-                
-                console.log(`🔄 Migrazione di ${newMembers.length} nuovi tesserati...`);
-                
-                let migrated = 0;
-                for (const member of newMembers) {
-                    try {
-                        await FirebaseDB.saveMember(member);
-                        migrated++;
-                    } catch (error) {
-                        console.error('Errore migrazione membro:', member, error);
-                    }
-                }
-                
-                console.log(`✅ Migrazione completata: ${migrated}/${newMembers.length} nuovi tesserati`);
-                
-                if (migrated > 0) {
-                    alert(`✅ Migrazione completata! ${migrated} nuovi tesserati aggiunti a Firebase.`);
-                }
-                
-                return true;
-            }
-            
-            return false;
-        }
-
-        let allMembers = [];
-        let currentFilters = {
-            search: '',
-            month: '',
-            status: '',
-            sort: 'expiry_asc'
-        };
-        let editingIndex = null;
-
-        // Notifiche Browser
-        function requestNotifications() {
-            if ('Notification' in window) {
-                Notification.requestPermission().then(permission => {
-                    updateNotificationStatus(permission);
-                    if (permission === 'granted') {
-                        new Notification('🛡️ Notifiche Abilitate!', {
-                            body: 'Riceverai alert per le scadenze anche quando l\'app è chiusa.',
-                            icon: '/favicon.ico'
-                        });
-                    }
-                });
-            } else {
-                alert('Il tuo browser non supporta le notifiche.');
-            }
-        }
-
-        function updateNotificationStatus(permission = null) {
-            const status = document.getElementById('notificationStatus');
-            const text = document.getElementById('notificationText');
-            const button = status.querySelector('button');
-            
-            const currentPermission = permission || (('Notification' in window) ? Notification.permission : 'denied');
-            
-            if (currentPermission === 'granted') {
-                status.className = 'notification-status notification-enabled';
-                text.textContent = '🔔 Notifiche browser abilitate';
-                button.style.display = 'none';
-            } else if (currentPermission === 'denied') {
-                status.className = 'notification-status notification-disabled';
-                text.textContent = '🔕 Notifiche browser disabilitate';
-                button.style.display = 'inline';
-                button.textContent = 'Riabilita';
-            } else {
-                status.className = 'notification-status notification-disabled';
-                text.textContent = '🔔 Clicca per abilitare notifiche browser';
-                button.style.display = 'inline';
-                button.textContent = 'Abilita';
-            }
-        }
-
-        function sendBrowserNotification(member, daysLeft) {
-            if (Notification.permission === 'granted') {
-                const isExpired = daysLeft <= 0;
-                const title = isExpired ? '🚨 Tessera Scaduta!' : '⚠️ Scadenza Imminente!';
-                const body = isExpired 
-                    ? `${member.nome} ${member.cognome} - Tessera ${member.numeroTessera} SCADUTA`
-                    : `${member.nome} ${member.cognome} - Tessera ${member.numeroTessera} scade tra ${daysLeft} giorni`;
-                
-                const notification = new Notification(title, {
-                    body: body,
-                    icon: '/favicon.ico',
-                    requireInteraction: true
-                });
-                
-                notification.onclick = function() {
-                    window.focus();
-                    notification.close();
-                };
-            }
-        }
-
-        // Filtri e Ricerca
-        function applyFilters() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const monthFilter = document.getElementById('monthFilter').value;
-            const statusFilter = document.getElementById('statusFilter').value;
-            const sortFilter = document.getElementById('sortFilter').value;
-            
-            currentFilters = { search: searchTerm, month: monthFilter, status: statusFilter, sort: sortFilter };
-            
-            if (searchTerm || monthFilter || statusFilter) {
-                showSearchResults();
-            } else {
-                showMainDashboard();
-            }
-        }
-
-        function showSearchResults() {
-            document.getElementById('mainDashboard').style.display = 'none';
-            document.getElementById('searchResults').style.display = 'block';
-            
-            let filteredMembers = allMembers.map((member, index) => ({...member, index}));
-            
-            if (currentFilters.search) {
-                filteredMembers = filteredMembers.filter(member => 
-                    member.nome.toLowerCase().includes(currentFilters.search) ||
-                    member.cognome.toLowerCase().includes(currentFilters.search) ||
-                    member.numeroTessera.toLowerCase().includes(currentFilters.search)
-                );
-            }
-            
-            if (currentFilters.month) {
-                filteredMembers = filteredMembers.filter(member => {
-                    const expiryMonth = new Date(member.dataScadenza).getMonth() + 1;
-                    return expiryMonth.toString().padStart(2, '0') === currentFilters.month;
-                });
-            }
-            
-            if (currentFilters.status) {
-                filteredMembers = filteredMembers.filter(member => {
-                    const isExp = isExpired(member.dataScadenza);
-                    const isExp15 = isExpiring(member.dataScadenza, 15);
-                    
-                    if (currentFilters.status === 'expired') return isExp;
-                    if (currentFilters.status === 'expiring') return isExp15 && !isExp;
-                    if (currentFilters.status === 'active') return !isExp && !isExp15;
-                    return true;
-                });
-            }
-            
-            filteredMembers.sort((a, b) => {
-                switch (currentFilters.sort) {
-                    case 'expiry_asc':
-                        return new Date(a.dataScadenza) - new Date(b.dataScadenza);
-                    case 'expiry_desc':
-                        return new Date(b.dataScadenza) - new Date(a.dataScadenza);
-                    case 'name_asc':
-                        return (a.nome + ' ' + a.cognome).localeCompare(b.nome + ' ' + b.cognome);
-                    case 'name_desc':
-                        return (b.nome + ' ' + b.cognome).localeCompare(a.nome + ' ' + a.cognome);
-                    case 'tessera_asc':
-                        return a.numeroTessera.localeCompare(b.numeroTessera);
-                    default:
-                        return 0;
-                }
-            });
-            
-            const resultsList = document.getElementById('searchResultsList');
-            resultsList.innerHTML = '';
-            
-            if (filteredMembers.length === 0) {
-                resultsList.innerHTML = '<div style="text-align: center; padding: 2rem; opacity: 0.7;">🔍 Nessun risultato trovato</div>';
-                return;
-            }
-            
-            filteredMembers.forEach(member => {
-                const isExp = isExpired(member.dataScadenza);
-                const isExp15 = isExpiring(member.dataScadenza, 15);
-                const daysLeft = getDaysLeft(member.dataScadenza);
-                
-                const statusColor = isExp ? '#f44336' : isExp15 ? '#ff9800' : '#4caf50';
-                const statusText = isExp ? 'SCADUTO' : isExp15 ? `${daysLeft} giorni` : 'ATTIVO';
-                
-                const div = document.createElement('div');
-                div.style.cssText = `
-                    background: var(--card-bg);
-                    padding: 1rem;
-                    margin-bottom: 1rem;
-                    border-radius: 8px;
-                    border-left: 4px solid ${statusColor};
-                    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-                `;
-                
-                div.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
-                        <div style="flex: 1; min-width: 250px;">
-                            <strong style="font-size: 1.1rem;">${member.nome} ${member.cognome}</strong> - ${member.numeroTessera}<br>
-                            <small>Scadenza: ${formatDate(member.dataScadenza)} - <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span></small><br>
-                            <small style="opacity: 0.7;">
-                                ${member.email ? `📧 ${member.email}` : ''} 
-                                ${member.whatsapp ? `📱 ${member.whatsapp}` : ''}
-                                ${member.codiceFiscale ? `🆔 ${member.codiceFiscale}` : ''}
-                            </small>
-                        </div>
-                        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                            <button onclick="sendAlert(${member.index})" class="warning" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">📩</button>
-                            <button onclick="renewMember(${member.index})" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">🔄</button>
-                            <button onclick="editMember(${member.index})" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">✏️</button>
-                        </div>
-                    </div>
-                `;
-                
-                resultsList.appendChild(div);
-            });
-        }
-
-        function showMainDashboard() {
-            document.getElementById('mainDashboard').style.display = 'grid';
-            document.getElementById('searchResults').style.display = 'none';
-            loadDashboard();
-        }
-
-        function clearAllFilters() {
-            document.getElementById('searchInput').value = '';
-            document.getElementById('monthFilter').value = '';
-            document.getElementById('statusFilter').value = '';
-            document.getElementById('sortFilter').value = 'expiry_asc';
-            currentFilters = { search: '', month: '', status: '', sort: 'expiry_asc' };
-            showMainDashboard();
-        }
-
-        // Funzioni utilità
-        function calculateExpiry(inscriptionDate) {
-            const date = new Date(inscriptionDate);
-            date.setFullYear(date.getFullYear() + 1);
-            return date;
-        }
-
-        function formatDate(date) {
-            return new Date(date).toLocaleDateString('it-IT');
-        }
-
-        function isExpiring(expiryDate, days = 15) {
-            const now = new Date();
-            const expiry = new Date(expiryDate);
-            const diffTime = expiry - now;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            return diffDays <= days && diffDays > 0;
-        }
-
-        function isExpired(expiryDate) {
-            const now = new Date();
-            const expiry = new Date(expiryDate);
-            return expiry < now;
-        }
-
-        function getDaysLeft(expiryDate) {
-            const now = new Date();
-            const expiry = new Date(expiryDate);
-            return Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
-        }
-
-        // Modal functions
-        function openModal(modalId) {
-            document.getElementById(modalId).style.display = 'block';
-            if (modalId === 'allMembersModal') {
-                loadAllMembers();
-            }
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-            if (modalId === 'memberModal') {
-                clearForm();
-            }
-        }
-
-        // Carica dashboard
-        async function loadDashboard() {
-            const members = await FirebaseDB.getMembers();
-            allMembers = members;
-            
-            const expiredList = document.getElementById('expiredList');
-            const expiringList = document.getElementById('expiringList');
-            
-            expiredList.innerHTML = '';
-            expiringList.innerHTML = '';
-            
-            let totalMembers = members.length;
-            let expiredCount = 0;
-            let expiringCount = 0;
-            let activeCount = 0;
-
-            const expiredMembers = [];
-            const expiringMembers = [];
-
-            members.forEach((member, index) => {
-                const isExp = isExpired(member.dataScadenza);
-                const isExp15 = isExpiring(member.dataScadenza, 15);
-                
-                if (isExp) {
-                    expiredCount++;
-                    expiredMembers.push({...member, index});
-                } else if (isExp15) {
-                    expiringCount++;
-                    expiringMembers.push({...member, index});
-                } else {
-                    activeCount++;
-                }
-            });
-
-            if (expiredMembers.length === 0) {
-                expiredList.innerHTML = '<div class="empty-state">✅ Nessun tesserato scaduto</div>';
-            } else {
-                expiredMembers.forEach(member => {
-                    const memberCard = createMemberCard(member, true);
-                    expiredList.appendChild(memberCard);
-                });
-            }
-
-            if (expiringMembers.length === 0) {
-                expiringList.innerHTML = '<div class="empty-state">✅ Nessuna scadenza imminente</div>';
-            } else {
-                expiringMembers.sort((a, b) => getDaysLeft(a.dataScadenza) - getDaysLeft(b.dataScadenza));
-                expiringMembers.forEach(member => {
-                    const memberCard = createMemberCard(member, false);
-                    expiringList.appendChild(memberCard);
-                });
-            }
-
-            document.getElementById('totalMembers').textContent = totalMembers;
-            document.getElementById('expiredCount').textContent = expiredCount;
-            document.getElementById('expiringCount').textContent = expiringCount;
-            document.getElementById('activeCount').textContent = activeCount;
-            document.getElementById('expiredBadge').textContent = expiredCount;
-            document.getElementById('expiringBadge').textContent = expiringCount;
-        }
-
-        function createMemberCard(member, isExpired) {
-            const div = document.createElement('div');
-            div.className = 'member-card';
-            
-            const daysLeft = getDaysLeft(member.dataScadenza);
-            const timeText = isExpired ? 'SCADUTO' : `${daysLeft} giorni`;
-            
-            const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
-            const memberKey = `${member.numeroTessera}_${member.dataScadenza}`;
-            const isContacted = contactLog[memberKey];
-            
-            const contactedBadge = isContacted ? `<div class="contacted-badge">✓ Contattato</div>` : '';
-            const contactedInfo = isContacted ? `<div class="contacted-info">Promemoria inviato il ${formatDate(isContacted.date)} alle ${isContacted.time}</div>` : '';
-            
-            div.innerHTML = `
-                ${contactedBadge}
-                <div class="member-name">${member.nome} ${member.cognome}</div>
-                <div class="member-details">
-                    Tessera: ${member.numeroTessera}<br>
-                    Scadenza: ${formatDate(member.dataScadenza)} - ${timeText}<br>
-                    ${member.email ? `📧 ${member.email}` : ''} ${member.whatsapp ? `📱 ${member.whatsapp}` : ''}
-                    ${member.codiceFiscale ? `<br>🆔 ${member.codiceFiscale}` : ''}
-                    ${contactedInfo}
-                </div>
-                <div class="member-actions">
-                    <div style="display: flex; flex-direction: column; align-items: center;">
-                        <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Promemoria</small>
-                        <button onclick="sendAlert(${member.index})" ${isContacted ? 'style="opacity: 0.6;"' : ''}>📩</button>
-                    </div>
-                    <div style="display: flex; flex-direction: column; align-items: center;">
-                        <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Rinnova</small>
-                        <button onclick="renewMember(${member.index})">🔄</button>
-                    </div>
-                    <div style="display: flex; flex-direction: column; align-items: center;">
-                        <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Modifica</small>
-                        <button onclick="editMember(${member.index})">✏️</button>
-                    </div>
-                    ${isContacted ? `
-                    <div style="display: flex; flex-direction: column; align-items: center;">
-                        <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Reset</small>
-                        <button onclick="resetContactStatus('${memberKey}')" style="background: #ffc107; font-size: 0.8rem;">🔄</button>
-                    </div>
-                    ` : ''}
-                </div>
-            `;
-            
-            return div;
-        }
-
-        function loadAllMembers() {
-            const list = document.getElementById('allMembersList');
-            list.innerHTML = '';
-
-            if (allMembers.length === 0) {
-                list.innerHTML = '<div style="text-align: center; padding: 2rem;">📭 Nessun tesserato. Importa il CSV per iniziare.</div>';
-                return;
-            }
-
-            const sortedMembers = allMembers.map((member, index) => ({...member, index}))
-                .sort((a, b) => new Date(a.dataScadenza) - new Date(b.dataScadenza));
-
-            sortedMembers.forEach(member => {
-                const isExp = isExpired(member.dataScadenza);
-                const isExp15 = isExpiring(member.dataScadenza, 15);
-                const daysLeft = getDaysLeft(member.dataScadenza);
-                
-                const statusColor = isExp ? '#f44336' : isExp15 ? '#ff9800' : '#4caf50';
-                const statusText = isExp ? 'SCADUTO' : isExp15 ? `${daysLeft} giorni` : 'ATTIVO';
-                
-                const div = document.createElement('div');
-                div.style.cssText = `
-                    background: var(--card-bg);
-                    padding: 1rem;
-                    margin-bottom: 1rem;
-                    border-radius: 8px;
-                    border-left: 4px solid ${statusColor};
-                    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-                `;
-                
-                div.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <strong>${member.nome} ${member.cognome}</strong> - ${member.numeroTessera}<br>
-                            <small>Scadenza: ${formatDate(member.dataScadenza)} - <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span></small><br>
-                            <small style="opacity: 0.7;">
-                                ${member.email ? `📧 ${member.email}` : ''} 
-                                ${member.whatsapp ? `📱 ${member.whatsapp}` : ''}
-                                ${member.codiceFiscale ? `🆔 ${member.codiceFiscale}` : ''}
-                            </small>
-                        </div>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <button onclick="sendAlert(${member.index})" class="warning" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">📩</button>
-                            <button onclick="renewMember(${member.index})" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">🔄</button>
-                            <button onclick="editMember(${member.index})" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">✏️</button>
-                            <button onclick="deleteMember(${member.index})" class="danger" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">🗑️</button>
-                        </div>
-                    </div>
-                `;
-                
-                list.appendChild(div);
-            });
-        }
-
-        async function saveMember() {
-            const nome = document.getElementById('nome').value.trim();
-            const cognome = document.getElementById('cognome').value.trim();
-            const numeroTessera = document.getElementById('numeroTessera').value.trim();
-            const dataIscrizione = document.getElementById('dataIscrizione').value;
-            const email = document.getElementById('email').value.trim();
-            const whatsapp = document.getElementById('whatsapp').value.trim();
-            const codiceFiscale = document.getElementById('codiceFiscale').value.trim().toUpperCase();
-
-            if (!nome || !cognome || !numeroTessera || !dataIscrizione) {
-                alert('Compila tutti i campi obbligatori (*)!');
-                return;
-            }
-
-            const dataScadenza = calculateExpiry(dataIscrizione);
-            
-            const member = {
-                nome,
-                cognome,
-                numeroTessera,
-                dataIscrizione,
-                dataScadenza: dataScadenza.toISOString(),
-                email,
-                whatsapp,
-                codiceFiscale,
-                status: 'attivo'
-            };
-
-            if (editingIndex !== null) {
-                const existingMember = allMembers[editingIndex];
-                member.id = existingMember.id;
-                
-                await FirebaseDB.saveMember(member);
-                editingIndex = null;
-                document.getElementById('modalTitle').textContent = '➕ Nuovo Tesserato';
-            } else {
-                await FirebaseDB.saveMember(member);
-            }
-
-            await loadDashboard();
-            closeModal('memberModal');
-            alert('✅ Tesserato salvato con successo!');
-        }
-
-        function clearForm() {
-            document.getElementById('nome').value = '';
-            document.getElementById('cognome').value = '';
-            document.getElementById('numeroTessera').value = '';
-            document.getElementById('dataIscrizione').value = '';
-            document.getElementById('email').value = '';
-            document.getElementById('whatsapp').value = '';
-            document.getElementById('codiceFiscale').value = '';
-            editingIndex = null;
-            document.getElementById('modalTitle').textContent = '➕ Nuovo Tesserato';
-        }
-
-        function sendAlert(index) {
-            const member = allMembers[index];
-            
-            const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
-            const memberKey = `${member.numeroTessera}_${member.dataScadenza}`;
-            const today = new Date().toDateString();
-            
-            if (contactLog[memberKey] && contactLog[memberKey].date === today) {
-                if (!confirm(`Hai già inviato un promemoria a ${member.nome} ${member.cognome} oggi alle ${contactLog[memberKey].time}. Vuoi inviarlo di nuovo?`)) {
-                    return;
-                }
-            }
-            
-            const messageToClient = `Ciao ${member.nome}, il tuo tesseramento e copertura assicurativa (n. ${member.numeroTessera}) scadono il ${formatDate(member.dataScadenza)}. Contattaci per il rinnovo!`;
-            const messageToMe = `ALERT: Il tesserato ${member.nome} ${member.cognome} (n. ${member.numeroTessera}) scade il ${formatDate(member.dataScadenza)}`;
-
-            // Mostra popup con opzioni di invio
-            showContactModal(member, messageToClient, messageToMe, memberKey);
-        }
-
-        function showContactModal(member, messageToClient, messageToMe, memberKey) {
-            // Rimuovi modal esistente se presente
-            const existingModal = document.getElementById('contactModal');
-            if (existingModal) existingModal.remove();
-
-            const modal = document.createElement('div');
-            modal.id = 'contactModal';
-            modal.className = 'modal';
-            modal.style.display = 'block';
-
-            modal.innerHTML = `
-                <div class="modal-content" style="max-width: 600px;">
-                    <span class="close" onclick="closeContactModal()">&times;</span>
-                    <h2>📩 Invia Promemoria a ${member.nome} ${member.cognome}</h2>
-                    
-                    <div style="background: var(--bg); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
-                        <strong>📝 Messaggio:</strong><br>
-                        <div id="messagePreview" style="font-style: italic; color: var(--primary); margin-top: 0.5rem;">${messageToClient}</div>
-                        <button onclick="copyMessage('${messageToClient.replace(/'/g, "\\'")}', 'cliente')" style="margin-top: 0.5rem; padding: 0.3rem 0.6rem; font-size: 0.8rem;">📋 Copia Messaggio</button>
-                    </div>
-                    
-                    ${member.whatsapp && member.whatsapp.length > 5 ? `
-                    <div style="margin: 1rem 0;">
-                        <h3>📱 WhatsApp</h3>
-                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                            <button onclick="sendWhatsApp('${member.whatsapp}', '${messageToClient.replace(/'/g, "\\'")}', true)" style="background: #25D366; color: white;">
-                                🔗 Link WhatsApp (Automatico)
-                            </button>
-                            <button onclick="openWhatsAppManual('${member.whatsapp}')" style="background: #075E54; color: white;">
-                                📱 Apri Chat (Manuale)
-                            </button>
-                            <button onclick="copyPhoneNumber('${member.whatsapp}')" style="background: #128C7E; color: white;">
-                                📋 Copia Numero
-                            </button>
-                        </div>
-                        <small style="opacity: 0.8;">💡 Se il link automatico non funziona, usa "Apri Chat" e incolla il messaggio manualmente</small>
-                    </div>
-                    ` : ''}
-                    
-                    ${member.email && member.email.includes('@') ? `
-                    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -1488,29 +390,22 @@
             color: white;
         }
 
-        .floating-menu {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            z-index: 100;
+        .legend {
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 1rem;
+            text-align: center;
         }
 
-        .fab {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            color: white;
-            border: none;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            font-size: 1.5rem;
-            cursor: pointer;
-            box-shadow: 0 4px 20px rgba(255, 107, 53, 0.4);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-
-        .fab:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 25px rgba(255, 107, 53, 0.6);
+        .legend-icons {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            font-size: 0.85rem;
+            opacity: 0.8;
         }
 
         /* Modal styles */
@@ -1605,14 +500,6 @@
             background-color: var(--secondary);
         }
 
-        .csv-upload {
-            border: 2px dashed var(--secondary);
-            padding: 1.5rem;
-            text-align: center;
-            border-radius: 8px;
-            margin: 1rem 0;
-        }
-
         .contacted-badge {
             background: rgba(76, 175, 80, 0.2);
             color: #4caf50;
@@ -1629,30 +516,6 @@
             color: #4caf50;
             opacity: 0.8;
             margin-top: 0.3rem;
-        }
-
-        .legend {
-            background: var(--card-bg);
-            padding: 1rem;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            margin-bottom: 1rem;
-            text-align: center;
-        }
-
-        .legend-icons {
-            display: flex;
-            gap: 1.5rem;
-            justify-content: center;
-            flex-wrap: wrap;
-            font-size: 0.85rem;
-            opacity: 0.8;
-        }
-
-        .legend-icon {
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
         }
 
         @keyframes fadeIn {
@@ -1712,17 +575,6 @@
 
             .member-actions {
                 justify-content: center;
-            }
-
-            .floating-menu {
-                bottom: 1rem;
-                right: 1rem;
-            }
-
-            .fab {
-                width: 50px;
-                height: 50px;
-                font-size: 1.2rem;
             }
 
             .logo {
@@ -1803,13 +655,13 @@
         <div class="legend">
             <h3 style="margin: 0 0 0.5rem 0; color: var(--primary); font-size: 1rem;">📖 Legenda Icone</h3>
             <div class="legend-icons">
-                <span class="legend-icon">📧 Email</span>
-                <span class="legend-icon">📱 WhatsApp</span>
-                <span class="legend-icon">🆔 Codice Fiscale</span>
-                <span class="legend-icon">📩 Promemoria</span>
-                <span class="legend-icon">🔄 Rinnova</span>
-                <span class="legend-icon">✏️ Modifica</span>
-                <span class="legend-icon">🗑️ Elimina</span>
+                <span>📧 Email</span>
+                <span>📱 WhatsApp</span>
+                <span>🆔 Codice Fiscale</span>
+                <span>📩 Promemoria</span>
+                <span>🔄 Rinnova</span>
+                <span>✏️ Modifica</span>
+                <span>🗑️ Elimina</span>
             </div>
         </div>
 
@@ -1950,4 +802,676 @@
             storageBucket: "reminderpush.firebasestorage.app",
             messagingSenderId: "533477700960",
             appId: "1:533477700960:web:94d90a7e327ec2912d1a05",
-            measure
+            measurementId: "G-RZ3Y5EV1DX"
+        };
+
+        // Inizializza Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Database helper functions
+        const FirebaseDB = {
+            async getMembers() {
+                try {
+                    console.log('🔥 Caricamento dati da Firebase...');
+                    const snapshot = await db.collection('members').get();
+                    console.log('✅ Firebase connesso! Documenti trovati:', snapshot.docs.length);
+                    return snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                } catch (error) {
+                    console.error('❌ Errore Firebase:', error);
+                    console.log('🔄 Usando localStorage come fallback...');
+                    return JSON.parse(localStorage.getItem('members') || '[]');
+                }
+            },
+
+            async saveMember(member) {
+                try {
+                    if (member.id) {
+                        await db.collection('members').doc(member.id).update(member);
+                    } else {
+                        await db.collection('members').add(member);
+                    }
+                    return true;
+                } catch (error) {
+                    console.error('Errore salvataggio membro:', error);
+                    const members = JSON.parse(localStorage.getItem('members') || '[]');
+                    if (member.id) {
+                        const index = members.findIndex(m => m.id === member.id);
+                        if (index >= 0) members[index] = member;
+                    } else {
+                        member.id = Date.now().toString();
+                        members.push(member);
+                    }
+                    localStorage.setItem('members', JSON.stringify(members));
+                    return false;
+                }
+            },
+
+            async deleteMember(memberId) {
+                try {
+                    await db.collection('members').doc(memberId).delete();
+                    return true;
+                } catch (error) {
+                    console.error('Errore eliminazione membro:', error);
+                    return false;
+                }
+            }
+        };
+
+        let allMembers = [];
+        let currentFilters = {
+            search: '',
+            month: '',
+            status: '',
+            sort: 'expiry_asc'
+        };
+        let editingIndex = null;
+
+        // Notifiche Browser
+        function requestNotifications() {
+            if ('Notification' in window) {
+                Notification.requestPermission().then(permission => {
+                    updateNotificationStatus(permission);
+                    if (permission === 'granted') {
+                        new Notification('🛡️ Notifiche Abilitate!', {
+                            body: 'Riceverai alert per le scadenze anche quando l\'app è chiusa.',
+                            icon: '/favicon.ico'
+                        });
+                    }
+                });
+            } else {
+                alert('Il tuo browser non supporta le notifiche.');
+            }
+        }
+
+        function updateNotificationStatus(permission = null) {
+            const status = document.getElementById('notificationStatus');
+            const text = document.getElementById('notificationText');
+            const button = status.querySelector('button');
+            
+            const currentPermission = permission || (('Notification' in window) ? Notification.permission : 'denied');
+            
+            if (currentPermission === 'granted') {
+                status.className = 'notification-status notification-enabled';
+                text.textContent = '🔔 Notifiche browser abilitate';
+                button.style.display = 'none';
+            } else if (currentPermission === 'denied') {
+                status.className = 'notification-status notification-disabled';
+                text.textContent = '🔕 Notifiche browser disabilitate';
+                button.style.display = 'inline';
+                button.textContent = 'Riabilita';
+            } else {
+                status.className = 'notification-status notification-disabled';
+                text.textContent = '🔔 Clicca per abilitare notifiche browser';
+                button.style.display = 'inline';
+                button.textContent = 'Abilita';
+            }
+        }
+
+        // Filtri e Ricerca
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const monthFilter = document.getElementById('monthFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const sortFilter = document.getElementById('sortFilter').value;
+            
+            currentFilters = { search: searchTerm, month: monthFilter, status: statusFilter, sort: sortFilter };
+            
+            if (searchTerm || monthFilter || statusFilter) {
+                showSearchResults();
+            } else {
+                showMainDashboard();
+            }
+        }
+
+        function showSearchResults() {
+            document.getElementById('mainDashboard').style.display = 'none';
+            document.getElementById('searchResults').style.display = 'block';
+            
+            let filteredMembers = allMembers.map((member, index) => ({...member, index}));
+            
+            if (currentFilters.search) {
+                filteredMembers = filteredMembers.filter(member => 
+                    member.nome.toLowerCase().includes(currentFilters.search) ||
+                    member.cognome.toLowerCase().includes(currentFilters.search) ||
+                    member.numeroTessera.toLowerCase().includes(currentFilters.search)
+                );
+            }
+            
+            if (currentFilters.month) {
+                filteredMembers = filteredMembers.filter(member => {
+                    const expiryMonth = new Date(member.dataScadenza).getMonth() + 1;
+                    return expiryMonth.toString().padStart(2, '0') === currentFilters.month;
+                });
+            }
+            
+            if (currentFilters.status) {
+                filteredMembers = filteredMembers.filter(member => {
+                    const isExp = isExpired(member.dataScadenza);
+                    const isExp15 = isExpiring(member.dataScadenza, 15);
+                    
+                    if (currentFilters.status === 'expired') return isExp;
+                    if (currentFilters.status === 'expiring') return isExp15 && !isExp;
+                    if (currentFilters.status === 'active') return !isExp && !isExp15;
+                    return true;
+                });
+            }
+            
+            filteredMembers.sort((a, b) => {
+                switch (currentFilters.sort) {
+                    case 'expiry_asc':
+                        return new Date(a.dataScadenza) - new Date(b.dataScadenza);
+                    case 'expiry_desc':
+                        return new Date(b.dataScadenza) - new Date(a.dataScadenza);
+                    case 'name_asc':
+                        return (a.nome + ' ' + a.cognome).localeCompare(b.nome + ' ' + b.cognome);
+                    case 'name_desc':
+                        return (b.nome + ' ' + b.cognome).localeCompare(a.nome + ' ' + a.cognome);
+                    case 'tessera_asc':
+                        return a.numeroTessera.localeCompare(b.numeroTessera);
+                    default:
+                        return 0;
+                }
+            });
+            
+            const resultsList = document.getElementById('searchResultsList');
+            resultsList.innerHTML = '';
+            
+            if (filteredMembers.length === 0) {
+                resultsList.innerHTML = '<div style="text-align: center; padding: 2rem; opacity: 0.7;">🔍 Nessun risultato trovato</div>';
+                return;
+            }
+            
+            filteredMembers.forEach(member => {
+                const isExp = isExpired(member.dataScadenza);
+                const isExp15 = isExpiring(member.dataScadenza, 15);
+                const daysLeft = getDaysLeft(member.dataScadenza);
+                
+                const statusColor = isExp ? '#f44336' : isExp15 ? '#ff9800' : '#4caf50';
+                const statusText = isExp ? 'SCADUTO' : isExp15 ? `${daysLeft} giorni` : 'ATTIVO';
+                
+                const div = document.createElement('div');
+                div.style.cssText = `
+                    background: var(--card-bg);
+                    padding: 1rem;
+                    margin-bottom: 1rem;
+                    border-radius: 8px;
+                    border-left: 4px solid ${statusColor};
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                `;
+                
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 250px;">
+                            <strong style="font-size: 1.1rem;">${member.nome} ${member.cognome}</strong> - ${member.numeroTessera}<br>
+                            <small>Scadenza: ${formatDate(member.dataScadenza)} - <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span></small><br>
+                            <small style="opacity: 0.7;">
+                                ${member.email ? `📧 ${member.email}` : ''} 
+                                ${member.whatsapp ? `📱 ${member.whatsapp}` : ''}
+                                ${member.codiceFiscale ? `🆔 ${member.codiceFiscale}` : ''}
+                            </small>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                            <button onclick="sendAlert(${member.index})" class="warning" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">📩</button>
+                            <button onclick="renewMember(${member.index})" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">🔄</button>
+                            <button onclick="editMember(${member.index})" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">✏️</button>
+                        </div>
+                    </div>
+                `;
+                
+                resultsList.appendChild(div);
+            });
+        }
+
+        function showMainDashboard() {
+            document.getElementById('mainDashboard').style.display = 'grid';
+            document.getElementById('searchResults').style.display = 'none';
+            loadDashboard();
+        }
+
+        function clearAllFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('monthFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('sortFilter').value = 'expiry_asc';
+            currentFilters = { search: '', month: '', status: '', sort: 'expiry_asc' };
+            showMainDashboard();
+        }
+
+        // Funzioni utilità
+        function calculateExpiry(inscriptionDate) {
+            const date = new Date(inscriptionDate);
+            date.setFullYear(date.getFullYear() + 1);
+            return date;
+        }
+
+        function formatDate(date) {
+            return new Date(date).toLocaleDateString('it-IT');
+        }
+
+        function isExpiring(expiryDate, days = 15) {
+            const now = new Date();
+            const expiry = new Date(expiryDate);
+            const diffTime = expiry - now;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays <= days && diffDays > 0;
+        }
+
+        function isExpired(expiryDate) {
+            const now = new Date();
+            const expiry = new Date(expiryDate);
+            return expiry < now;
+        }
+
+        function getDaysLeft(expiryDate) {
+            const now = new Date();
+            const expiry = new Date(expiryDate);
+            return Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+        }
+
+        // Modal functions
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+            if (modalId === 'allMembersModal') {
+                loadAllMembers();
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            if (modalId === 'memberModal') {
+                clearForm();
+            }
+        }
+
+        // Carica dashboard
+        async function loadDashboard() {
+            const members = await FirebaseDB.getMembers();
+            allMembers = members;
+            
+            const expiredList = document.getElementById('expiredList');
+            const expiringList = document.getElementById('expiringList');
+            
+            expiredList.innerHTML = '';
+            expiringList.innerHTML = '';
+            
+            let totalMembers = members.length;
+            let expiredCount = 0;
+            let expiringCount = 0;
+            let activeCount = 0;
+
+            const expiredMembers = [];
+            const expiringMembers = [];
+
+            members.forEach((member, index) => {
+                const isExp = isExpired(member.dataScadenza);
+                const isExp15 = isExpiring(member.dataScadenza, 15);
+                
+                if (isExp) {
+                    expiredCount++;
+                    expiredMembers.push({...member, index});
+                } else if (isExp15) {
+                    expiringCount++;
+                    expiringMembers.push({...member, index});
+                } else {
+                    activeCount++;
+                }
+            });
+
+            if (expiredMembers.length === 0) {
+                expiredList.innerHTML = '<div class="empty-state">✅ Nessun tesserato scaduto</div>';
+            } else {
+                expiredMembers.forEach(member => {
+                    const memberCard = createMemberCard(member, true);
+                    expiredList.appendChild(memberCard);
+                });
+            }
+
+            if (expiringMembers.length === 0) {
+                expiringList.innerHTML = '<div class="empty-state">✅ Nessuna scadenza imminente</div>';
+            } else {
+                expiringMembers.sort((a, b) => getDaysLeft(a.dataScadenza) - getDaysLeft(b.dataScadenza));
+                expiringMembers.forEach(member => {
+                    const memberCard = createMemberCard(member, false);
+                    expiringList.appendChild(memberCard);
+                });
+            }
+
+            document.getElementById('totalMembers').textContent = totalMembers;
+            document.getElementById('expiredCount').textContent = expiredCount;
+            document.getElementById('expiringCount').textContent = expiringCount;
+            document.getElementById('activeCount').textContent = activeCount;
+            document.getElementById('expiredBadge').textContent = expiredCount;
+            document.getElementById('expiringBadge').textContent = expiringCount;
+        }
+
+        function createMemberCard(member, isExpired) {
+            const div = document.createElement('div');
+            div.className = 'member-card';
+            
+            const daysLeft = getDaysLeft(member.dataScadenza);
+            const timeText = isExpired ? 'SCADUTO' : `${daysLeft} giorni`;
+            
+            const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
+            const memberKey = `${member.numeroTessera}_${member.dataScadenza}`;
+            const isContacted = contactLog[memberKey];
+            
+            const contactedBadge = isContacted ? `<div class="contacted-badge">✓ Contattato</div>` : '';
+            const contactedInfo = isContacted ? `<div class="contacted-info">Promemoria inviato il ${formatDate(isContacted.date)} alle ${isContacted.time}</div>` : '';
+            
+            div.innerHTML = `
+                ${contactedBadge}
+                <div class="member-name">${member.nome} ${member.cognome}</div>
+                <div class="member-details">
+                    Tessera: ${member.numeroTessera}<br>
+                    Scadenza: ${formatDate(member.dataScadenza)} - ${timeText}<br>
+                    ${member.email ? `📧 ${member.email}` : ''} ${member.whatsapp ? `📱 ${member.whatsapp}` : ''}
+                    ${member.codiceFiscale ? `<br>🆔 ${member.codiceFiscale}` : ''}
+                    ${contactedInfo}
+                </div>
+                <div class="member-actions">
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Promemoria</small>
+                        <button onclick="sendAlert(${member.index})" ${isContacted ? 'style="opacity: 0.6;"' : ''}>📩</button>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Rinnova</small>
+                        <button onclick="renewMember(${member.index})">🔄</button>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <small style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 0.2rem;">Modifica</small>
+                        <button onclick="editMember(${member.index})">✏️</button>
+                    </div>
+                </div>
+            `;
+            
+            return div;
+        }
+
+        function loadAllMembers() {
+            const list = document.getElementById('allMembersList');
+            list.innerHTML = '';
+
+            if (allMembers.length === 0) {
+                list.innerHTML = '<div style="text-align: center; padding: 2rem;">📭 Nessun tesserato. Importa il CSV per iniziare.</div>';
+                return;
+            }
+
+            const sortedMembers = allMembers.map((member, index) => ({...member, index}))
+                .sort((a, b) => new Date(a.dataScadenza) - new Date(b.dataScadenza));
+
+            sortedMembers.forEach(member => {
+                const isExp = isExpired(member.dataScadenza);
+                const isExp15 = isExpiring(member.dataScadenza, 15);
+                const daysLeft = getDaysLeft(member.dataScadenza);
+                
+                const statusColor = isExp ? '#f44336' : isExp15 ? '#ff9800' : '#4caf50';
+                const statusText = isExp ? 'SCADUTO' : isExp15 ? `${daysLeft} giorni` : 'ATTIVO';
+                
+                const div = document.createElement('div');
+                div.style.cssText = `
+                    background: var(--card-bg);
+                    padding: 1rem;
+                    margin-bottom: 1rem;
+                    border-radius: 8px;
+                    border-left: 4px solid ${statusColor};
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                `;
+                
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>${member.nome} ${member.cognome}</strong> - ${member.numeroTessera}<br>
+                            <small>Scadenza: ${formatDate(member.dataScadenza)} - <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span></small><br>
+                            <small style="opacity: 0.7;">
+                                ${member.email ? `📧 ${member.email}` : ''} 
+                                ${member.whatsapp ? `📱 ${member.whatsapp}` : ''}
+                                ${member.codiceFiscale ? `🆔 ${member.codiceFiscale}` : ''}
+                            </small>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button onclick="sendAlert(${member.index})" class="warning" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">📩</button>
+                            <button onclick="renewMember(${member.index})" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">🔄</button>
+                            <button onclick="editMember(${member.index})" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">✏️</button>
+                            <button onclick="deleteMember(${member.index})" class="danger" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">🗑️</button>
+                        </div>
+                    </div>
+                `;
+                
+                list.appendChild(div);
+            });
+        }
+
+        async function saveMember() {
+            const nome = document.getElementById('nome').value.trim();
+            const cognome = document.getElementById('cognome').value.trim();
+            const numeroTessera = document.getElementById('numeroTessera').value.trim();
+            const dataIscrizione = document.getElementById('dataIscrizione').value;
+            const email = document.getElementById('email').value.trim();
+            const whatsapp = document.getElementById('whatsapp').value.trim();
+            const codiceFiscale = document.getElementById('codiceFiscale').value.trim().toUpperCase();
+
+            if (!nome || !cognome || !numeroTessera || !dataIscrizione) {
+                alert('Compila tutti i campi obbligatori (*)!');
+                return;
+            }
+
+            const dataScadenza = calculateExpiry(dataIscrizione);
+            
+            const member = {
+                nome,
+                cognome,
+                numeroTessera,
+                dataIscrizione,
+                dataScadenza: dataScadenza.toISOString(),
+                email,
+                whatsapp,
+                codiceFiscale,
+                status: 'attivo'
+            };
+
+            if (editingIndex !== null) {
+                const existingMember = allMembers[editingIndex];
+                member.id = existingMember.id;
+                
+                await FirebaseDB.saveMember(member);
+                editingIndex = null;
+                document.getElementById('modalTitle').textContent = '➕ Nuovo Tesserato';
+            } else {
+                await FirebaseDB.saveMember(member);
+            }
+
+            await loadDashboard();
+            closeModal('memberModal');
+            alert('✅ Tesserato salvato con successo!');
+        }
+
+        function clearForm() {
+            document.getElementById('nome').value = '';
+            document.getElementById('cognome').value = '';
+            document.getElementById('numeroTessera').value = '';
+            document.getElementById('dataIscrizione').value = '';
+            document.getElementById('email').value = '';
+            document.getElementById('whatsapp').value = '';
+            document.getElementById('codiceFiscale').value = '';
+            editingIndex = null;
+            document.getElementById('modalTitle').textContent = '➕ Nuovo Tesserato';
+        }
+
+        function sendAlert(index) {
+            const member = allMembers[index];
+            const messageToClient = `Ciao ${member.nome}, il tuo tesseramento e copertura assicurativa (n. ${member.numeroTessera}) scadono il ${formatDate(member.dataScadenza)}. Contattaci per il rinnovo!`;
+            
+            // Semplice invio diretto per ora
+            if (member.whatsapp && member.whatsapp.length > 5) {
+                const clientLink = `https://wa.me/${member.whatsapp}?text=${encodeURIComponent(messageToClient)}`;
+                window.open(clientLink, '_blank');
+            }
+
+            if (member.email && member.email.includes('@')) {
+                const emailLink = `mailto:${member.email}?subject=${encodeURIComponent('Rinnovo Tesseramento e Copertura Assicurativa')}&body=${encodeURIComponent(messageToClient)}`;
+                window.open(emailLink, '_blank');
+            }
+
+            // Segna come contattato
+            const now = new Date();
+            const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
+            const memberKey = `${member.numeroTessera}_${member.dataScadenza}`;
+            contactLog[memberKey] = {
+                date: now.toDateString(),
+                time: now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+                timestamp: now.getTime()
+            };
+            localStorage.setItem('contactLog', JSON.stringify(contactLog));
+            
+            loadDashboard();
+            alert('✅ Promemoria inviato!');
+        }
+
+        async function renewMember(index) {
+            if (confirm('Rinnovare il tesseramento per 1 anno?')) {
+                const member = allMembers[index];
+                
+                const currentExpiry = new Date(member.dataScadenza);
+                currentExpiry.setFullYear(currentExpiry.getFullYear() + 1);
+                member.dataScadenza = currentExpiry.toISOString();
+                member.dataIscrizione = new Date().toISOString().split('T')[0];
+                
+                await FirebaseDB.saveMember(member);
+                await loadDashboard();
+                alert('✅ Tesseramento rinnovato con successo!');
+            }
+        }
+
+        async function editMember(index) {
+            const member = allMembers[index];
+            
+            document.getElementById('nome').value = member.nome;
+            document.getElementById('cognome').value = member.cognome;
+            document.getElementById('numeroTessera').value = member.numeroTessera;
+            document.getElementById('dataIscrizione').value = member.dataIscrizione;
+            document.getElementById('email').value = member.email || '';
+            document.getElementById('whatsapp').value = member.whatsapp || '';
+            document.getElementById('codiceFiscale').value = member.codiceFiscale || '';
+            
+            editingIndex = index;
+            document.getElementById('modalTitle').textContent = '✏️ Modifica Tesserato';
+            openModal('memberModal');
+        }
+
+        async function deleteMember(index) {
+            if (confirm('Eliminare definitivamente questo tesserato?')) {
+                const member = allMembers[index];
+                
+                if (member.id) {
+                    await FirebaseDB.deleteMember(member.id);
+                }
+                
+                await loadDashboard();
+                alert('✅ Tesserato eliminato!');
+            }
+        }
+
+        function handleCSV(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const csv = e.target.result;
+                const lines = csv.split('\n');
+                
+                let imported = 0;
+                
+                if (lines.length < 2) {
+                    alert('File CSV vuoto o non valido');
+                    return;
+                }
+                
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    
+                    const fields = line.split(';').map(s => s.trim());
+                    
+                    if (fields.length >= 15) {
+                        const associazione = fields[0];
+                        const cognome = fields[1];
+                        const nome = fields[2];
+                        const codiceFiscale = fields[3];
+                        const dataInserimento = fields[7];
+                        const numeroTessera = fields[9];
+                        const telefono = fields[13];
+                        const email = fields[14];
+                        
+                        if (nome && cognome && dataInserimento && numeroTessera) {
+                            const exists = allMembers.some(m => m.numeroTessera === numeroTessera);
+                            if (exists) continue;
+                            
+                            let formattedDate = dataInserimento;
+                            if (dataInserimento.includes('/')) {
+                                const [day, month, year] = dataInserimento.split('/');
+                                formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                            }
+                            
+                            const dataScadenza = calculateExpiry(formattedDate);
+                            const cleanPhone = telefono ? telefono.replace(/\D/g, '') : '';
+                            
+                            const member = {
+                                nome,
+                                cognome,
+                                numeroTessera,
+                                dataIscrizione: formattedDate,
+                                dataScadenza: dataScadenza.toISOString(),
+                                email: email || '',
+                                whatsapp: cleanPhone || '',
+                                codiceFiscale: codiceFiscale || '',
+                                status: 'attivo',
+                                associazione: associazione || ''
+                            };
+                            
+                            await FirebaseDB.saveMember(member);
+                            imported++;
+                        }
+                    }
+                }
+                
+                await loadDashboard();
+                alert(`Importati ${imported} tesserati dal CSV CSEN!`);
+                input.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle("dark");
+            const current = document.body.classList.contains("dark") ? "dark" : "light";
+            localStorage.setItem("theme", current);
+        }
+
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+
+        window.onload = async () => {
+            const savedTheme = localStorage.getItem("theme");
+            if (savedTheme === "dark") {
+                document.body.classList.add("dark");
+            }
+            
+            updateNotificationStatus();
+            await loadDashboard();
+            
+            console.log('✅ App caricata!');
+        };
+    </script>
+</body>
+</html>
