@@ -777,6 +777,9 @@
             <label for="whatsapp">WhatsApp</label>
             <input type="text" id="whatsapp" placeholder="393331234567">
             
+            <label for="codiceFiscale">Codice Fiscale</label>
+            <input type="text" id="codiceFiscale" placeholder="RSSMRA80A01H501Z" style="text-transform: uppercase;">
+            
             <div style="text-align: center; margin-top: 1.5rem;">
                 <button onclick="saveMember()">💾 Salva</button>
                 <button onclick="clearForm()" class="secondary">🗑️ Pulisci</button>
@@ -1341,6 +1344,7 @@
             const dataIscrizione = document.getElementById('dataIscrizione').value;
             const email = document.getElementById('email').value.trim();
             const whatsapp = document.getElementById('whatsapp').value.trim();
+            const codiceFiscale = document.getElementById('codiceFiscale').value.trim().toUpperCase();
 
             if (!nome || !cognome || !numeroTessera || !dataIscrizione) {
                 alert('Compila tutti i campi obbligatori (*)!');
@@ -1357,6 +1361,7 @@
                 dataScadenza: dataScadenza.toISOString(),
                 email,
                 whatsapp,
+                codiceFiscale,
                 status: 'attivo'
             };
 
@@ -1383,6 +1388,7 @@
             document.getElementById('dataIscrizione').value = '';
             document.getElementById('email').value = '';
             document.getElementById('whatsapp').value = '';
+            document.getElementById('codiceFiscale').value = '';
             editingIndex = null;
             document.getElementById('modalTitle').textContent = '➕ Nuovo Tesserato';
         }
@@ -1610,6 +1616,7 @@
             document.getElementById('dataIscrizione').value = member.dataIscrizione;
             document.getElementById('email').value = member.email || '';
             document.getElementById('whatsapp').value = member.whatsapp || '';
+            document.getElementById('codiceFiscale').value = member.codiceFiscale || '';
             
             editingIndex = index;
             document.getElementById('modalTitle').textContent = '✏️ Modifica Tesserato';
@@ -1645,6 +1652,10 @@
                     return;
                 }
                 
+                // Debug: mostra la prima riga per vedere i campi disponibili
+                console.log('📊 Header CSV:', lines[0]);
+                console.log('📊 Primo dato:', lines[1]);
+                
                 for (let i = 1; i < lines.length; i++) {
                     const line = lines[i].trim();
                     if (!line) continue;
@@ -1652,13 +1663,21 @@
                     const fields = line.split(';').map(s => s.trim());
                     
                     if (fields.length >= 15) {
-                        const associazione = fields[0];
-                        const cognome = fields[1];
-                        const nome = fields[2];
-                        const dataInserimento = fields[7];
-                        const numeroTessera = fields[9];
-                        const telefono = fields[13];
-                        const email = fields[14];
+                        const associazione = fields[0];          // Colonna 0: Associazione
+                        const cognome = fields[1];               // Colonna 1: Cognome
+                        const nome = fields[2];                  // Colonna 2: Nome
+                        const codiceFiscale = fields[3];         // Colonna 3: Codice Fiscale
+                        // fields[4] = Data Nascita
+                        // fields[5] = Luogo Nascita  
+                        // fields[6] = Provincia
+                        const dataInserimento = fields[7];       // Colonna 7: Data Inserimento
+                        // fields[8] = Anno Sociale
+                        const numeroTessera = fields[9];         // Colonna 9: Numero Tessera
+                        // fields[10] = Tipo Tessera
+                        // fields[11] = Codice Disciplina
+                        // fields[12] = Descrizione Disciplina
+                        const telefono = fields[13];             // Colonna 13: Telefono
+                        const email = fields[14];                // Colonna 14: Email
                         
                         if (nome && cognome && dataInserimento && numeroTessera) {
                             const exists = allMembers.some(m => m.numeroTessera === numeroTessera);
@@ -1681,6 +1700,7 @@
                                 dataScadenza: dataScadenza.toISOString(),
                                 email: email || '',
                                 whatsapp: cleanPhone || '',
+                                codiceFiscale: codiceFiscale || '',
                                 status: 'attivo',
                                 associazione: associazione || ''
                             };
