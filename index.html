@@ -1,831 +1,451 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="TRIBÙ Alert Scadenze">
-    <meta name="theme-color" content="#ff6b35">
-    <title>TRIBÙ - Alert Scadenze Tesserati</title>
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        :root {
-            --bg: #f7f9fb;
-            --text: #333;
-            --card-bg: #fff;
-            --primary: #ff6b35;
-            --primary-dark: #e55a2b;
-            --secondary: #ccc;
-            --button-bg: #ff6b35;
-            --button-text: #fff;
-            --warning: #ff9800;
-            --danger: #f44336;
-            --accent: #2c2c2c;
-        }
-
-        body.dark {
-            --bg: #121212;
-            --text: #e0e0e0;
-            --card-bg: #1f1f1f;
-            --primary: #ff6b35;
-            --primary-dark: #e55a2b;
-            --secondary: #333;
-            --button-bg: #ff6b35;
-            --button-text: #fff;
-            --accent: #f0f0f0;
-        }
-
-        body {
-            font-family: 'Poppins', sans-serif;
-            margin: 0;
-            padding: 0;
-            background: var(--bg);
-            color: var(--text);
-            transition: background 0.3s, color 0.3s;
-            overflow-x: hidden;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
-        }
-
-        header {
-            background: linear-gradient(135deg, var(--accent), #1a1a1a);
-            color: var(--button-text);
-            padding: 1.5rem 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        }
-
-        .header-brand {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .logo {
-            width: 120px;
-            height: 60px;
-            background-image: url('./tribu-logo.png');
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            background-color: transparent;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
-        }
-
-        .brand-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .brand-name {
-            font-size: 1.4rem;
-            font-weight: bold;
-            color: var(--primary);
-            margin: 0;
-        }
-
-        .brand-subtitle {
-            font-size: 0.9rem;
-            opacity: 0.8;
-            margin: 0;
-        }
-
-        .brand-address {
-            font-size: 0.7rem;
-            opacity: 0.6;
-            margin: 0;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-
-        .header-btn {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
-            cursor: pointer;
-            padding: 0.6rem 1rem;
-            border-radius: 8px;
-            transition: background 0.3s;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.2rem;
-            font-size: 0.8rem;
-            min-width: 70px;
-        }
-
-        .header-btn:hover {
-            background: rgba(255,255,255,0.3);
-        }
-
-        .header-btn-icon {
-            font-size: 1.2rem;
-        }
-
-        .header-btn-text {
-            font-size: 0.65rem;
-            opacity: 0.9;
-            text-align: center;
-            line-height: 1;
-        }
-
-        main {
-            padding: 1rem;
-            max-width: 1200px;
-            margin: auto;
-        }
-
-        .dashboard {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .urgent-section {
-            background: linear-gradient(135deg, #f44336, #d32f2f);
-            color: white;
-            padding: 1.5rem;
-            border-radius: 15px;
-            box-shadow: 0 8px 25px rgba(244, 67, 54, 0.3);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .urgent-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1));
-        }
-
-        .expiring-section {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            color: white;
-            padding: 1.5rem;
-            border-radius: 15px;
-            box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .expiring-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1));
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            border-bottom: 2px solid rgba(255,255,255,0.3);
-            padding-bottom: 0.5rem;
-        }
-
-        .count-badge {
-            background: rgba(255,255,255,0.3);
-            padding: 0.3rem 0.8rem;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-
-        .member-card {
-            background: rgba(255,255,255,0.15);
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border-radius: 10px;
-            border-left: 4px solid rgba(255,255,255,0.5);
-        }
-
-        .member-card:last-child {
-            margin-bottom: 0;
-        }
-
-        .member-name {
-            font-size: 1.1rem;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-        }
-
-        .member-details {
-            font-size: 0.9rem;
-            opacity: 0.9;
-            margin-bottom: 0.8rem;
-        }
-
-        .member-actions {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-
-        .member-actions button {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
-            padding: 0.4rem 0.8rem;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .member-actions button:hover {
-            background: rgba(255,255,255,0.3);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 2rem;
-            opacity: 0.8;
-        }
-
-        .quick-stats {
-            background: var(--card-bg);
-            padding: 1rem;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            margin-bottom: 1.5rem;
-            text-align: center;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 1rem;
-        }
-
-        .stat-item {
-            padding: 0.5rem;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: background 0.3s, transform 0.2s;
-        }
-
-        .stat-item.clickable:hover {
-            background: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(229, 90, 43, 0.1));
-            transform: translateY(-2px);
-        }
-
-        .stat-item.clickable {
-            cursor: pointer;
-        }
-
-        .stat-number {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: var(--primary);
-            margin-bottom: 0.2rem;
-        }
-
-        .stat-label {
-            font-size: 0.9rem;
-            opacity: 0.7;
-        }
-
-        .search-filters {
-            background: var(--card-bg);
-            padding: 1rem;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            margin-bottom: 1.5rem;
-        }
-
-        .search-bar {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-            align-items: center;
-        }
-
-        .search-input {
-            flex: 1;
-            padding: 0.6rem 1rem;
-            border: 2px solid var(--secondary);
-            border-radius: 25px;
-            font-size: 1rem;
-            background: var(--bg);
-            transition: border-color 0.3s;
-            color: var(--text);
-        }
-
-        .search-input:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        .filter-row {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .filter-group {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-
-        .filter-select {
-            padding: 0.4rem 0.8rem;
-            border: 1px solid var(--secondary);
-            border-radius: 6px;
-            background: var(--card-bg);
-            color: var(--text);
-            font-size: 0.9rem;
-        }
-
-        .clear-filters {
-            background: var(--secondary);
-            color: var(--text);
-            padding: 0.4rem 0.8rem;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-
-        .notification-status {
-            background: var(--card-bg);
-            padding: 0.8rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            margin-bottom: 1rem;
-            text-align: center;
-            font-size: 0.9rem;
-        }
-
-        .notification-enabled {
-            background: linear-gradient(135deg, #4caf50, #45a049);
-            color: white;
-        }
-
-        .notification-disabled {
-            background: linear-gradient(135deg, #ff9800, #f57c00);
-            color: white;
-        }
-
-        .floating-menu {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            z-index: 100;
-        }
-
-        .fab {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            color: white;
-            border: none;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            font-size: 1.5rem;
-            cursor: pointer;
-            box-shadow: 0 4px 20px rgba(255, 107, 53, 0.4);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-
-        .fab:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 25px rgba(255, 107, 53, 0.6);
-        }
-
-        /* Modal styles */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            z-index: 1000;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .modal-content {
-            background: var(--card-bg);
-            margin: 5% auto;
-            padding: 2rem;
-            border-radius: 15px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            animation: slideIn 0.3s ease;
-        }
-
-        .modal h2 {
-            margin: 0 0 1.5rem 0;
-            color: var(--primary);
-        }
-
-        .close {
-            float: right;
-            font-size: 2rem;
-            cursor: pointer;
-            color: var(--secondary);
-            line-height: 1;
-            margin-top: -0.5rem;
-        }
-
-        .close:hover {
-            color: var(--danger);
-        }
-
-        label {
-            font-weight: 600;
-            margin-top: 1rem;
-            display: block;
-            color: var(--text);
-        }
-
-        input, textarea, select {
-            width: 100%;
-            padding: 0.75rem;
-            margin-top: 0.25rem;
-            margin-bottom: 1rem;
-            border: 1px solid var(--secondary);
-            border-radius: 8px;
-            font-family: 'Poppins', sans-serif;
-            font-size: 1rem;
-            background: var(--card-bg);
-            color: var(--text);
-        }
-
-        button {
-            padding: 0.6rem 1rem;
-            border: none;
-            background-color: var(--button-bg);
-            color: var(--button-text);
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            margin: 0.25rem;
-            font-size: 1rem;
-            transition: opacity 0.3s;
-        }
-
-        button:hover {
-            opacity: 0.9;
-        }
-
-        button.warning {
-            background-color: var(--warning);
-        }
-
-        button.danger {
-            background-color: var(--danger);
-        }
-
-        button.secondary {
-            background-color: var(--secondary);
-        }
-
-        .csv-upload {
-            border: 2px dashed var(--secondary);
-            padding: 1.5rem;
-            text-align: center;
-            border-radius: 8px;
-            margin: 1rem 0;
-        }
-
-        .contacted-badge {
-            background: rgba(76, 175, 80, 0.2);
-            color: #4caf50;
-            padding: 0.2rem 0.6rem;
-            border-radius: 12px;
-            font-size: 0.7rem;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-            display: inline-block;
-        }
-
-        .contacted-info {
-            font-size: 0.75rem;
-            color: #4caf50;
-            opacity: 0.8;
-            margin-top: 0.3rem;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        @keyframes slideIn {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        @media screen and (max-width: 768px) {
-            .dashboard {
-                grid-template-columns: 1fr;
+                    ${member.email && member.email.includes('@') ? `
+                    <div style="margin: 1rem 0;">
+                        <h3>📧 Email</h3>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button onclick="sendEmail('${member.email}', '${messageToClient.replace(/'/g, "\\'")}')">
+                                📧 Invia Email
+                            </button>
+                            <button onclick="copyEmail('${member.email}')">
+                                📋 Copia Email
+                            </button>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    <div style="margin: 1.5rem 0;">
+                        <h3>📲 Notifica a Me</h3>
+                        <button onclick="sendWhatsApp('3478881515', '${messageToMe.replace(/'/g, "\\'")}', false)" style="background: var(--warning);">
+                            📩 Invia Notifica a Me
+                        </button>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 2rem; border-top: 1px solid var(--secondary); padding-top: 1rem;">
+                        <button onclick="markAsContacted('${memberKey}'); closeContactModal();" style="background: var(--primary);">
+                            ✅ Segna come Contattato
+                        </button>
+                        <button onclick="closeContactModal()" class="secondary">
+                            ❌ Annulla
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+        }
+
+        function closeContactModal() {
+            const modal = document.getElementById('contactModal');
+            if (modal) modal.remove();
+        }
+
+        function sendWhatsApp(phone, message, isClient) {
+            // Prova prima il metodo standard
+            const link1 = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+            window.open(link1, '_blank');
+            
+            // Se è un cliente, offri alternative dopo 2 secondi
+            if (isClient) {
+                setTimeout(() => {
+                    if (confirm('Il messaggio non si è pre-compilato? Clicca OK per aprire WhatsApp senza messaggio e potrai incollare il testo.')) {
+                        openWhatsAppManual(phone);
+                    }
+                }, 2000);
             }
+        }
 
-            .header-brand {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.5rem;
+        function openWhatsAppManual(phone) {
+            // Apre WhatsApp senza messaggio precompilato
+            const link = `https://wa.me/${phone}`;
+            window.open(link, '_blank');
+            
+            // Mostra istruzioni
+            setTimeout(() => {
+                alert('📱 WhatsApp aperto! Ora:\n1. Copia il messaggio dal pulsante "📋 Copia Messaggio"\n2. Incollalo nella chat\n3. Invia');
+            }, 1000);
+        }
+
+        function copyMessage(message, type) {
+            navigator.clipboard.writeText(message).then(() => {
+                alert(`📋 Messaggio copiato! Ora incollalo nella chat ${type === 'cliente' ? 'del cliente' : ''}`);
+            }).catch(() => {
+                // Fallback per browser che non supportano clipboard API
+                const textArea = document.createElement('textarea');
+                textArea.value = message;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert(`📋 Messaggio copiato! Ora incollalo nella chat ${type === 'cliente' ? 'del cliente' : ''}`);
+            });
+        }
+
+        function copyPhoneNumber(phone) {
+            navigator.clipboard.writeText(phone).then(() => {
+                alert(`📋 Numero ${phone} copiato negli appunti!`);
+            }).catch(() => {
+                const textArea = document.createElement('textarea');
+                textArea.value = phone;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert(`📋 Numero ${phone} copiato negli appunti!`);
+            });
+        }
+
+        function copyEmail(email) {
+            navigator.clipboard.writeText(email).then(() => {
+                alert(`📋 Email ${email} copiata negli appunti!`);
+            }).catch(() => {
+                const textArea = document.createElement('textarea');
+                textArea.value = email;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert(`📋 Email ${email} copiata negli appunti!`);
+            });
+        }
+
+        function sendEmail(email, message) {
+            const emailLink = `mailto:${email}?subject=${encodeURIComponent('Rinnovo Tesseramento e Copertura Assicurativa')}&body=${encodeURIComponent(message)}`;
+            window.open(emailLink, '_blank');
+        }
+
+        function markAsContacted(memberKey) {
+            const now = new Date();
+            const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
+            contactLog[memberKey] = {
+                date: now.toDateString(),
+                time: now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+                timestamp: now.getTime()
+            };
+            localStorage.setItem('contactLog', JSON.stringify(contactLog));
+            
+            // DISABILITA COMPLETAMENTE tutti gli alert per questo tesserato
+            const popupShown = JSON.parse(localStorage.getItem('popupShown') || '{}');
+            const lastNotified = JSON.parse(localStorage.getItem('lastNotified') || '{}');
+            
+            // Trova il tesserato dal memberKey (formato: numeroTessera_dataScadenza)
+            const [numeroTessera, dataScadenza] = memberKey.split('_');
+            const member = allMembers.find(m => m.numeroTessera === numeroTessera && m.dataScadenza === dataScadenza);
+            
+            if (member) {
+                // Disabilita PERMANENTEMENTE fino al rinnovo (imposta data molto futura)
+                const farFuture = new Date();
+                farFuture.setFullYear(farFuture.getFullYear() + 1); // 1 anno nel futuro
+                
+                popupShown[member.numeroTessera] = farFuture.toDateString();
+                lastNotified[member.numeroTessera] = farFuture.toDateString();
+                
+                localStorage.setItem('popupShown', JSON.stringify(popupShown));
+                localStorage.setItem('lastNotified', JSON.stringify(lastNotified));
+                
+                console.log(`🚫 Alert DISABILITATI PERMANENTEMENTE per ${member.nome} ${member.cognome} fino al rinnovo`);
             }
+            
+            loadDashboard();
+            alert('✅ Cliente contattato! Alert disabilitati fino al rinnovo della tessera.');
+        }
 
-            .header-actions {
-                flex-direction: column;
-                gap: 0.3rem;
+        function resetContactStatus(memberKey) {
+            if (confirm('Vuoi resettare lo stato "contattato" per permettere un nuovo invio promemoria?')) {
+                const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
+                delete contactLog[memberKey];
+                localStorage.setItem('contactLog', JSON.stringify(contactLog));
+                loadDashboard();
+                alert('✅ Stato invio resettato! Ora puoi inviare di nuovo il promemoria.');
             }
+        }
 
-            .header-btn {
-                min-width: 60px;
-                padding: 0.4rem 0.6rem;
+        async function renewMember(index) {
+            if (confirm('Rinnovare il tesseramento per 1 anno?')) {
+                const member = allMembers[index];
+                const oldExpiry = member.dataScadenza;
+                const oldMemberKey = `${member.numeroTessera}_${oldExpiry}`;
+                
+                const currentExpiry = new Date(member.dataScadenza);
+                currentExpiry.setFullYear(currentExpiry.getFullYear() + 1);
+                member.dataScadenza = currentExpiry.toISOString();
+                member.dataIscrizione = new Date().toISOString().split('T')[0];
+                
+                await FirebaseDB.saveMember(member);
+                
+                // PULISCI il tracking della vecchia scadenza quando rinnovi
+                const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
+                const popupShown = JSON.parse(localStorage.getItem('popupShown') || '{}');
+                const lastNotified = JSON.parse(localStorage.getItem('lastNotified') || '{}');
+                
+                // Rimuovi il tracking della vecchia scadenza
+                delete contactLog[oldMemberKey];
+                
+                // Reset anche popup e notifiche per permettere nuovi alert sulla nuova scadenza
+                delete popupShown[member.numeroTessera];
+                delete lastNotified[member.numeroTessera];
+                
+                localStorage.setItem('contactLog', JSON.stringify(contactLog));
+                localStorage.setItem('popupShown', JSON.stringify(popupShown));
+                localStorage.setItem('lastNotified', JSON.stringify(lastNotified));
+                
+                await loadDashboard();
+                alert('✅ Tesseramento rinnovato! Alert riabilitati per la nuova scadenza.');
             }
+        }
 
-            .header-btn-text {
-                font-size: 0.6rem;
+        async function editMember(index) {
+            const member = allMembers[index];
+            
+            document.getElementById('nome').value = member.nome;
+            document.getElementById('cognome').value = member.cognome;
+            document.getElementById('numeroTessera').value = member.numeroTessera;
+            document.getElementById('dataIscrizione').value = member.dataIscrizione;
+            document.getElementById('email').value = member.email || '';
+            document.getElementById('whatsapp').value = member.whatsapp || '';
+            document.getElementById('codiceFiscale').value = member.codiceFiscale || '';
+            
+            editingIndex = index;
+            document.getElementById('modalTitle').textContent = '✏️ Modifica Tesserato';
+            openModal('memberModal');
+        }
+
+        async function deleteMember(index) {
+            if (confirm('Eliminare definitivamente questo tesserato?')) {
+                const member = allMembers[index];
+                
+                if (member.id) {
+                    await FirebaseDB.deleteMember(member.id);
+                }
+                
+                await loadDashboard();
+                alert('✅ Tesserato eliminato!');
             }
+        }
 
-            .brand-info {
-                align-items: flex-start;
-            }
+        function handleCSV(input) {
+            const file = input.files[0];
+            if (!file) return;
 
-            .brand-name {
-                font-size: 1.1rem;
-            }
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const csv = e.target.result;
+                const lines = csv.split('\n');
+                
+                let imported = 0;
+                
+                if (lines.length < 2) {
+                    alert('File CSV vuoto o non valido');
+                    return;
+                }
+                
+                // Debug: mostra la prima riga per vedere i campi disponibili
+                console.log('📊 Header CSV:', lines[0]);
+                console.log('📊 Primo dato:', lines[1]);
+                
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    
+                    const fields = line.split(';').map(s => s.trim());
+                    
+                    if (fields.length >= 15) {
+                        const associazione = fields[0];          // Colonna 0: Associazione
+                        const cognome = fields[1];               // Colonna 1: Cognome
+                        const nome = fields[2];                  // Colonna 2: Nome
+                        const codiceFiscale = fields[3];         // Colonna 3: Codice Fiscale
+                        // fields[4] = Data Nascita
+                        // fields[5] = Luogo Nascita  
+                        // fields[6] = Provincia
+                        const dataInserimento = fields[7];       // Colonna 7: Data Inserimento
+                        // fields[8] = Anno Sociale
+                        const numeroTessera = fields[9];         // Colonna 9: Numero Tessera
+                        // fields[10] = Tipo Tessera
+                        // fields[11] = Codice Disciplina
+                        // fields[12] = Descrizione Disciplina
+                        const telefono = fields[13];             // Colonna 13: Telefono
+                        const email = fields[14];                // Colonna 14: Email
+                        
+                        if (nome && cognome && dataInserimento && numeroTessera) {
+                            const exists = allMembers.some(m => m.numeroTessera === numeroTessera);
+                            if (exists) continue;
+                            
+                            let formattedDate = dataInserimento;
+                            if (dataInserimento.includes('/')) {
+                                const [day, month, year] = dataInserimento.split('/');
+                                formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                            }
+                            
+                            const dataScadenza = calculateExpiry(formattedDate);
+                            const cleanPhone = telefono ? telefono.replace(/\D/g, '') : '';
+                            
+                            const member = {
+                                nome,
+                                cognome,
+                                numeroTessera,
+                                dataIscrizione: formattedDate,
+                                dataScadenza: dataScadenza.toISOString(),
+                                email: email || '',
+                                whatsapp: cleanPhone || '',
+                                codiceFiscale: codiceFiscale || '',
+                                status: 'attivo',
+                                associazione: associazione || ''
+                            };
+                            
+                            await FirebaseDB.saveMember(member);
+                            imported++;
+                        }
+                    }
+                }
+                
+                await loadDashboard();
+                alert(`Importati ${imported} tesserati dal CSV CSEN!`);
+                input.value = '';
+            };
+            reader.readAsText(file);
+        }
 
-            .brand-subtitle {
-                font-size: 0.8rem;
-            }
-
-            .brand-address {
-                font-size: 0.65rem;
-            }
-
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .member-actions {
+        function showExpirationPopup(member, daysLeft) {
+            if (document.querySelector('.popup-overlay')) return;
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'popup-overlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                display: flex;
                 justify-content: center;
-            }
+                align-items: center;
+                z-index: 2000;
+                animation: fadeIn 0.3s ease;
+            `;
+            
+            const isExpired = daysLeft <= 0;
+            const title = isExpired ? '🚨 TESSERA SCADUTA!' : '⚠️ SCADENZA IMMINENTE!';
+            const message = isExpired 
+                ? `La tessera di ${member.nome} ${member.cognome} è SCADUTA`
+                : `La tessera di ${member.nome} ${member.cognome} scade tra ${daysLeft} giorni`;
+            
+            overlay.innerHTML = `
+                <div style="
+                    background: var(--card-bg);
+                    padding: 2rem;
+                    border-radius: 15px;
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+                    max-width: 400px;
+                    width: 90%;
+                    text-align: center;
+                    animation: slideIn 0.3s ease;
+                ">
+                    <h3 style="color: ${isExpired ? '#f44336' : '#ff9800'}; margin: 0 0 1rem 0; font-size: 1.5rem;">${title}</h3>
+                    <p style="margin: 0.5rem 0;"><strong>${member.nome} ${member.cognome}</strong></p>
+                    <p style="margin: 0.5rem 0;">Tessera: ${member.numeroTessera}</p>
+                    <p style="margin: 0.5rem 0;">Scadenza: ${formatDate(member.dataScadenza)}</p>
+                    <p style="margin: 1rem 0; font-weight: bold;">${message}</p>
+                    <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem; flex-wrap: wrap;">
+                        <button onclick="closePopup(); sendAlert(${member.index})" style="background: #ff9800; color: white; padding: 0.8rem 1.2rem; border: none; border-radius: 8px; cursor: pointer;">📩 Promemoria</button>
+                        <button onclick="closePopup(); renewMember(${member.index})" style="background: #25D366; color: white; padding: 0.8rem 1.2rem; border: none; border-radius: 8px; cursor: pointer;">🔄 Rinnova</button>
+                        <button onclick="closePopup()" style="background: #ccc; color: #333; padding: 0.8rem 1.2rem; border: none; border-radius: 8px; cursor: pointer;">⏰ Dopo</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(overlay);
+            
+            const lastShown = JSON.parse(localStorage.getItem('popupShown') || '{}');
+            lastShown[member.numeroTessera] = new Date().toDateString();
+            localStorage.setItem('popupShown', JSON.stringify(lastShown));
+        }
 
-            .floating-menu {
-                bottom: 1rem;
-                right: 1rem;
-            }
-
-            .fab {
-                width: 50px;
-                height: 50px;
-                font-size: 1.2rem;
-            }
-
-            .logo {
-                width: 100px;
-                height: 45px;
+        function closePopup() {
+            const overlay = document.querySelector('.popup-overlay');
+            if (overlay) {
+                overlay.remove();
             }
         }
-    </style>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-    
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-</head>
-<body>
-    <header>
-        <div class="header-brand">
-            <div class="logo"></div>
-            <div class="brand-info">
-                <div class="brand-name">TRIBÙ Personal Training ASD</div>
-                <div class="brand-subtitle">Alert Scadenze</div>
-                <div class="brand-address">Via Albere 27/B - 37138 Verona</div>
-            </div>
-        </div>
-        <div class="header-actions">
-            <button class="header-btn" onclick="document.getElementById('csvFile').click()" title="Importa CSV">
-                <div class="header-btn-icon">📥</div>
-                <div class="header-btn-text">Import CSV</div>
-            </button>
-            <button class="header-btn" onclick="openModal('memberModal')" title="Aggiungi nuovo tesserato">
-                <div class="header-btn-icon">➕</div>
-                <div class="header-btn-text">Nuovo Tesserato</div>
-            </button>
-            <button class="header-btn" onclick="toggleTheme()" title="Cambia tema">
-                <div class="header-btn-icon">🌙</div>
-                <div class="header-btn-text">Tema</div>
-            </button>
-        </div>
-        <!-- Input CSV nascosto -->
-        <input type="file" id="csvFile" accept=".csv" onchange="handleCSV(this)" style="display: none;">
-    </header>
-    
-    <main>
-        <!-- Stato notifiche -->
-        <div id="notificationStatus" class="notification-status notification-disabled">
-            🔔 <span id="notificationText">Clicca per abilitare notifiche browser</span>
-            <button onclick="requestNotifications()" style="margin-left: 1rem; padding: 0.3rem 0.8rem; background: rgba(255,255,255,0.3); border: none; border-radius: 4px; color: inherit; cursor: pointer;">Abilita</button>
-        </div>
 
-        <!-- Statistiche rapide -->
-        <div class="quick-stats">
-            <div class="stats-grid">
-                <div class="stat-item clickable" onclick="openModal('allMembersModal')" title="Clicca per vedere tutti i tesserati">
-                    <div class="stat-number" id="totalMembers">0</div>
-                    <div class="stat-label">Totali</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number" id="expiredCount">0</div>
-                    <div class="stat-label">Scaduti</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number" id="expiringCount">0</div>
-                    <div class="stat-label">In Scadenza</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number" id="activeCount">0</div>
-                    <div class="stat-label">Attivi</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Legenda Icone -->
-        <div class="search-filters" style="margin-bottom: 1rem;">
-            <div style="text-align: center;">
-                <h3 style="margin: 0 0 0.5rem 0; color: var(--primary); font-size: 1rem;">📖 Legenda Icone</h3>
-                <div style="display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; font-size: 0.85rem; opacity: 0.8;">
-                    <span>📧 Email</span>
-                    <span>📱 WhatsApp</span>
-                    <span>🆔 Codice Fiscale</span>
-                    <span>📩 Promemoria</span>
-                    <span>🔄 Rinnova</span>
-                    <span>✏️ Modifica</span>
-                    <span>🗑️ Elimina</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Ricerca e Filtri -->
-        <div class="search-filters">
-            <div class="search-bar">
-                <input type="text" class="search-input" id="searchInput" placeholder="🔍 Cerca per nome, cognome o numero tessera..." onkeyup="applyFilters()">
-            </div>
-            <div class="filter-row">
-                <div class="filter-group">
-                    <label style="font-size: 0.9rem; margin: 0;">Mese scadenza:</label>
-                    <select class="filter-select" id="monthFilter" onchange="applyFilters()">
-                        <option value="">Tutti i mesi</option>
-                        <option value="01">Gennaio</option>
-                        <option value="02">Febbraio</option>
-                        <option value="03">Marzo</option>
-                        <option value="04">Aprile</option>
-                        <option value="05">Maggio</option>
-                        <option value="06">Giugno</option>
-                        <option value="07">Luglio</option>
-                        <option value="08">Agosto</option>
-                        <option value="09">Settembre</option>
-                        <option value="10">Ottobre</option>
-                        <option value="11">Novembre</option>
-                        <option value="12">Dicembre</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label style="font-size: 0.9rem; margin: 0;">Stato:</label>
-                    <select class="filter-select" id="statusFilter" onchange="applyFilters()">
-                        <option value="">Tutti</option>
-                        <option value="expired">Solo Scaduti</option>
-                        <option value="expiring">Solo In Scadenza</option>
-                        <option value="active">Solo Attivi</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label style="font-size: 0.9rem; margin: 0;">Ordina per:</label>
-                    <select class="filter-select" id="sortFilter" onchange="applyFilters()">
-                        <option value="expiry_asc">Scadenza (prima i più urgenti)</option>
-                        <option value="expiry_desc">Scadenza (prima i meno urgenti)</option>
-                        <option value="name_asc">Nome A-Z</option>
-                        <option value="name_desc">Nome Z-A</option>
-                        <option value="tessera_asc">Numero Tessera</option>
-                    </select>
-                </div>
-                <button class="clear-filters" onclick="clearAllFilters()">🗑️ Pulisci Filtri</button>
-            </div>
-        </div>
-
-        <!-- Dashboard principale -->
-        <div class="dashboard" id="mainDashboard">
-            <!-- Tesserati Scaduti -->
-            <div class="urgent-section">
-                <div class="section-header">
-                    <h2>❌ Tesserati Scaduti</h2>
-                    <span class="count-badge" id="expiredBadge">0</span>
-                </div>
-                <div id="expiredList">
-                    <div class="empty-state">✅ Nessun tesserato scaduto</div>
-                </div>
-            </div>
-
-            <!-- Tesserati in Scadenza -->
-            <div class="expiring-section">
-                <div class="section-header">
-                    <h2>⚠️ In Scadenza (15gg)</h2>
-                    <span class="count-badge" id="expiringBadge">0</span>
-                </div>
-                <div id="expiringList">
-                    <div class="empty-state">✅ Nessuna scadenza imminente</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Risultati ricerca (nascosto inizialmente) -->
-        <div id="searchResults" style="display: none;">
-            <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                <h2>🔍 Risultati Ricerca</h2>
-                <div id="searchResultsList"></div>
-            </div>
-        </div>
-    </main>
-
-    <!-- Modal Nuovo Tesserato -->
-    <div id="memberModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('memberModal')">&times;</span>
-            <h2 id="modalTitle">➕ Nuovo Tesserato</h2>
+        function checkExpirations() {
+            const lastShown = JSON.parse(localStorage.getItem('popupShown') || '{}');
+            const lastNotified = JSON.parse(localStorage.getItem('lastNotified') || '{}');
+            const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
+            const today = new Date().toDateString();
             
-            <label for="nome">Nome *</label>
-            <input type="text" id="nome" placeholder="Mario">
-            
-            <label for="cognome">Cognome *</label>
-            <input type="text" id="cognome" placeholder="Rossi">
-            
-            <label for="numeroTessera">Numero Tessera *</label>
-            <input type="text" id="numeroTessera" placeholder="T001">
-            
-            <label for="dataIscrizione">Data Iscrizione *</label>
-            <input type="date" id="dataIscrizione">
-            
-            <label for="email">Email</label>
-            <input type="email" id="email" placeholder="mario.rossi@email.com">
-            
-            <label for="whatsapp">WhatsApp</label>
-            <input type="text" id="whatsapp" placeholder="393331234567">
-            
-            <label for="codiceFiscale">Codice Fiscale</label>
-            <input type="text" id="codiceFiscale" placeholder="RSSMRA80A01H501Z" style="text-transform: uppercase;">
-            
-            <div style="text-align: center; margin-top: 1.5rem;">
-                <button onclick="saveMember()">💾 Salva</button>
-                <button onclick="clearForm()" class="secondary">🗑️ Pulisci</button>
-                <button onclick="closeModal('memberModal')" class="secondary">❌ Annulla</button>
-            </div>
-        </div>
-    </div>
+            allMembers.forEach((member, index) => {
+                const daysLeft = getDaysLeft(member.dataScadenza);
+                const memberKey = `${member.numeroTessera}_${member.dataScadenza}`;
+                
+                // Se è stato contattato per questa scadenza specifica, NON mostrare più alert
+                const wasContacted = contactLog[memberKey];
+                
+                if (wasContacted) {
+                    // Cliente già contattato per questa scadenza = NIENTE ALERT
+                    return;
+                }
+                
+                // POPUP: Solo se non contattato E non mostrato oggi
+                const shouldShowPopup = (daysLeft <= 7 || daysLeft <= 0) && 
+                                       lastShown[member.numeroTessera] !== today;
+                
+                if (shouldShowPopup) {
+                    setTimeout(() => {
+                        showExpirationPopup({...member, index}, daysLeft);
+                    }, 2000);
+                    return; // Mostra solo un popup alla volta
+                }
+                
+                // NOTIFICHE BROWSER: Solo se non contattato E non notificato oggi
+                if (Notification.permission === 'granted') {
+                    const shouldNotify = (daysLeft === 7 || daysLeft === 3 || daysLeft === 1 || daysLeft <= 0) && 
+                                       lastNotified[member.numeroTessera] !== today;
+                    
+                    if (shouldNotify) {
+                        sendBrowserNotification({...member, index}, daysLeft);
+                        
+                        lastNotified[member.numeroTessera] = today;
+                        localStorage.setItem('lastNotified', JSON.stringify(lastNotified));
+                    }
+                }
+            });
+        }
 
-    <!-- Modal Lista Completa -->
-    <div id="allMembersModal" class="modal">
-        <div class="modal-content" style="max-width: 800px;">
-            <span class="close" onclick="closeModal('allMembersModal')">&times;</span>
-            <h2>👥 Tutti i Tesserati</h2>
-            <div id="allMembersList"></div>
-            <div style="text-align: center; margin-top: 1rem;">
-                <button onclick="closeModal('allMembersModal')" class="secondary">❌ Chiudi</button>
-            </div>
-        </div>
-    </div>
+        function toggleTheme() {
+            document.body.classList.toggle("dark");
+            const current = document.body.classList.contains("dark") ? "dark" : "light";
+            localStorage.setItem("theme", current);
+        }
 
-    <script>
-        // CONFIGURAZIONE FIREBASE
-        const firebaseConfig = {
-            apiKey: "AIzaSyC-s8VuHiNx2mnWvUynFa7eYj4r9LHC5LQ",
-            authDomain: "reminderpush.firebaseapp.com",
-            projectId: "reminderpush",
-            storageBucket: "reminderpush.firebasestorage.app",
-            messagingSenderId: "533477700960",
-            appId: "1:533477700960:web:94d90a7e327ec2912d1a05",
-            measurementId: "G-RZ3Y5EV1DX"
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+
+        window.onload = async () => {
+            const savedTheme = localStorage.getItem("theme");
+            if (savedTheme === "dark") {
+                document.body.classList.add("dark");
+            }
+            
+            updateNotificationStatus();
+            
+            const hasMigrated = await migrateLocalDataToFirebase();
+            
+            await loadDashboard();
+            
+            setTimeout(checkExpirations, 1000);
+            
+            setInterval(checkExpirations, 10 * 60 * 1000);
+            
+            console.log('✅ App caricata con Firebase!');
+        };
+    </script>
+</body>
+</html>
         };
 
         // Inizializza Firebase
@@ -1476,396 +1096,858 @@
                     ` : ''}
                     
                     ${member.email && member.email.includes('@') ? `
-                    <div style="margin: 1rem 0;">
-                        <h3>📧 Email</h3>
-                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                            <button onclick="sendEmail('${member.email}', '${messageToClient.replace(/'/g, "\\'")}')">
-                                📧 Invia Email
-                            </button>
-                            <button onclick="copyEmail('${member.email}')">
-                                📋 Copia Email
-                            </button>
-                        </div>
-                    </div>
-                    ` : ''}
-                    
-                    <div style="margin: 1.5rem 0;">
-                        <h3>📲 Notifica a Me</h3>
-                        <button onclick="sendWhatsApp('3478881515', '${messageToMe.replace(/'/g, "\\'")}', false)" style="background: var(--warning);">
-                            📩 Invia Notifica a Me
-                        </button>
-                    </div>
-                    
-                    <div style="text-align: center; margin-top: 2rem; border-top: 1px solid var(--secondary); padding-top: 1rem;">
-                        <button onclick="markAsContacted('${memberKey}'); closeContactModal();" style="background: var(--primary);">
-                            ✅ Segna come Contattato
-                        </button>
-                        <button onclick="closeContactModal()" class="secondary">
-                            ❌ Annulla
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            document.body.appendChild(modal);
+                    <!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TRIBÙ Alert Scadenze">
+    <meta name="theme-color" content="#ff6b35">
+    <title>TRIBÙ - Alert Scadenze Tesserati</title>
+    <style>
+        * {
+            box-sizing: border-box;
         }
 
-        function closeContactModal() {
-            const modal = document.getElementById('contactModal');
-            if (modal) modal.remove();
+        :root {
+            --bg: #f7f9fb;
+            --text: #333;
+            --card-bg: #fff;
+            --primary: #ff6b35;
+            --primary-dark: #e55a2b;
+            --secondary: #ccc;
+            --button-bg: #ff6b35;
+            --button-text: #fff;
+            --warning: #ff9800;
+            --danger: #f44336;
+            --accent: #2c2c2c;
         }
 
-        function sendWhatsApp(phone, message, isClient) {
-            // Prova prima il metodo standard
-            const link1 = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-            window.open(link1, '_blank');
-            
-            // Se è un cliente, offri alternative dopo 2 secondi
-            if (isClient) {
-                setTimeout(() => {
-                    if (confirm('Il messaggio non si è pre-compilato? Clicca OK per aprire WhatsApp senza messaggio e potrai incollare il testo.')) {
-                        openWhatsAppManual(phone);
-                    }
-                }, 2000);
+        body.dark {
+            --bg: #121212;
+            --text: #e0e0e0;
+            --card-bg: #1f1f1f;
+            --primary: #ff6b35;
+            --primary-dark: #e55a2b;
+            --secondary: #333;
+            --button-bg: #ff6b35;
+            --button-text: #fff;
+            --accent: #f0f0f0;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            color: var(--text);
+            transition: background 0.3s, color 0.3s;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--accent), #1a1a1a);
+            color: var(--button-text);
+            padding: 1.5rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            width: 120px;
+            height: 60px;
+            background-image: url('./tribu-logo.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-color: transparent;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+        }
+
+        .brand-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand-name {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 0;
+        }
+
+        .brand-subtitle {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin: 0;
+        }
+
+        .brand-address {
+            font-size: 0.7rem;
+            opacity: 0.6;
+            margin: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .header-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            transition: background 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.2rem;
+            font-size: 0.8rem;
+            min-width: 70px;
+        }
+
+        .header-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .header-btn-icon {
+            font-size: 1.2rem;
+        }
+
+        .header-btn-text {
+            font-size: 0.65rem;
+            opacity: 0.9;
+            text-align: center;
+            line-height: 1;
+        }
+
+        main {
+            padding: 1rem;
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .urgent-section {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(244, 67, 54, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .urgent-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1));
+        }
+
+        .expiring-section {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .expiring-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1));
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+            padding-bottom: 0.5rem;
+        }
+
+        .count-badge {
+            background: rgba(255,255,255,0.3);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .member-card {
+            background: rgba(255,255,255,0.15);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 10px;
+            border-left: 4px solid rgba(255,255,255,0.5);
+        }
+
+        .member-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .member-name {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .member-details {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 0.8rem;
+        }
+
+        .member-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .member-actions button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .member-actions button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            opacity: 0.8;
+        }
+
+        .quick-stats {
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-item {
+            padding: 0.5rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.3s, transform 0.2s;
+        }
+
+        .stat-item.clickable:hover {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(229, 90, 43, 0.1));
+            transform: translateY(-2px);
+        }
+
+        .stat-item.clickable {
+            cursor: pointer;
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 0.2rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        .search-filters {
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 1.5rem;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 0.6rem 1rem;
+            border: 2px solid var(--secondary);
+            border-radius: 25px;
+            font-size: 1rem;
+            background: var(--bg);
+            transition: border-color 0.3s;
+            color: var(--text);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .filter-select {
+            padding: 0.4rem 0.8rem;
+            border: 1px solid var(--secondary);
+            border-radius: 6px;
+            background: var(--card-bg);
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+
+        .clear-filters {
+            background: var(--secondary);
+            color: var(--text);
+            padding: 0.4rem 0.8rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .notification-status {
+            background: var(--card-bg);
+            padding: 0.8rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 1rem;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .notification-enabled {
+            background: linear-gradient(135deg, #4caf50, #45a049);
+            color: white;
+        }
+
+        .notification-disabled {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            color: white;
+        }
+
+        .floating-menu {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 100;
+        }
+
+        .fab {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(255, 107, 53, 0.4);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 25px rgba(255, 107, 53, 0.6);
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: slideIn 0.3s ease;
+        }
+
+        .modal h2 {
+            margin: 0 0 1.5rem 0;
+            color: var(--primary);
+        }
+
+        .close {
+            float: right;
+            font-size: 2rem;
+            cursor: pointer;
+            color: var(--secondary);
+            line-height: 1;
+            margin-top: -0.5rem;
+        }
+
+        .close:hover {
+            color: var(--danger);
+        }
+
+        label {
+            font-weight: 600;
+            margin-top: 1rem;
+            display: block;
+            color: var(--text);
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 0.25rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--secondary);
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            background: var(--card-bg);
+            color: var(--text);
+        }
+
+        button {
+            padding: 0.6rem 1rem;
+            border: none;
+            background-color: var(--button-bg);
+            color: var(--button-text);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 0.25rem;
+            font-size: 1rem;
+            transition: opacity 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button.warning {
+            background-color: var(--warning);
+        }
+
+        button.danger {
+            background-color: var(--danger);
+        }
+
+        button.secondary {
+            background-color: var(--secondary);
+        }
+
+        .csv-upload {
+            border: 2px dashed var(--secondary);
+            padding: 1.5rem;
+            text-align: center;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .contacted-badge {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            display: inline-block;
+        }
+
+        .contacted-info {
+            font-size: 0.75rem;
+            color: #4caf50;
+            opacity: 0.8;
+            margin-top: 0.3rem;
+        }
+
+        .legend {
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .legend-icons {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+
+        .legend-icon {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @media screen and (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
             }
-        }
 
-        function openWhatsAppManual(phone) {
-            // Apre WhatsApp senza messaggio precompilato
-            const link = `https://wa.me/${phone}`;
-            window.open(link, '_blank');
-            
-            // Mostra istruzioni
-            setTimeout(() => {
-                alert('📱 WhatsApp aperto! Ora:\n1. Copia il messaggio dal pulsante "📋 Copia Messaggio"\n2. Incollalo nella chat\n3. Invia');
-            }, 1000);
-        }
-
-        function copyMessage(message, type) {
-            navigator.clipboard.writeText(message).then(() => {
-                alert(`📋 Messaggio copiato! Ora incollalo nella chat ${type === 'cliente' ? 'del cliente' : ''}`);
-            }).catch(() => {
-                // Fallback per browser che non supportano clipboard API
-                const textArea = document.createElement('textarea');
-                textArea.value = message;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                alert(`📋 Messaggio copiato! Ora incollalo nella chat ${type === 'cliente' ? 'del cliente' : ''}`);
-            });
-        }
-
-        function copyPhoneNumber(phone) {
-            navigator.clipboard.writeText(phone).then(() => {
-                alert(`📋 Numero ${phone} copiato negli appunti!`);
-            }).catch(() => {
-                const textArea = document.createElement('textarea');
-                textArea.value = phone;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                alert(`📋 Numero ${phone} copiato negli appunti!`);
-            });
-        }
-
-        function copyEmail(email) {
-            navigator.clipboard.writeText(email).then(() => {
-                alert(`📋 Email ${email} copiata negli appunti!`);
-            }).catch(() => {
-                const textArea = document.createElement('textarea');
-                textArea.value = email;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                alert(`📋 Email ${email} copiata negli appunti!`);
-            });
-        }
-
-        function sendEmail(email, message) {
-            const emailLink = `mailto:${email}?subject=${encodeURIComponent('Rinnovo Tesseramento e Copertura Assicurativa')}&body=${encodeURIComponent(message)}`;
-            window.open(emailLink, '_blank');
-        }
-
-        function markAsContacted(memberKey) {
-            const now = new Date();
-            const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
-            contactLog[memberKey] = {
-                date: now.toDateString(),
-                time: now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
-                timestamp: now.getTime()
-            };
-            localStorage.setItem('contactLog', JSON.stringify(contactLog));
-            
-            loadDashboard();
-            alert('✅ Cliente segnato come contattato!');
-        }
-
-        function resetContactStatus(memberKey) {
-            if (confirm('Vuoi resettare lo stato "contattato" per permettere un nuovo invio promemoria?')) {
-                const contactLog = JSON.parse(localStorage.getItem('contactLog') || '{}');
-                delete contactLog[memberKey];
-                localStorage.setItem('contactLog', JSON.stringify(contactLog));
-                loadDashboard();
-                alert('✅ Stato invio resettato! Ora puoi inviare di nuovo il promemoria.');
+            .header-brand {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
             }
-        }
 
-        async function renewMember(index) {
-            if (confirm('Rinnovare il tesseramento per 1 anno?')) {
-                const member = allMembers[index];
-                const oldExpiry = member.dataScadenza;
-                
-                const currentExpiry = new Date(member.dataScadenza);
-                currentExpiry.setFullYear(currentExpiry.getFullYear() + 1);
-                member.dataScadenza = currentExpiry.toISOString();
-                member.dataIscrizione = new Date().toISOString().split('T')[0];
-                
-                await FirebaseDB.saveMember(member);
-                
-                await loadDashboard();
-                alert('✅ Tesseramento rinnovato con successo!');
+            .header-actions {
+                flex-direction: column;
+                gap: 0.3rem;
             }
-        }
 
-        async function editMember(index) {
-            const member = allMembers[index];
-            
-            document.getElementById('nome').value = member.nome;
-            document.getElementById('cognome').value = member.cognome;
-            document.getElementById('numeroTessera').value = member.numeroTessera;
-            document.getElementById('dataIscrizione').value = member.dataIscrizione;
-            document.getElementById('email').value = member.email || '';
-            document.getElementById('whatsapp').value = member.whatsapp || '';
-            document.getElementById('codiceFiscale').value = member.codiceFiscale || '';
-            
-            editingIndex = index;
-            document.getElementById('modalTitle').textContent = '✏️ Modifica Tesserato';
-            openModal('memberModal');
-        }
-
-        async function deleteMember(index) {
-            if (confirm('Eliminare definitivamente questo tesserato?')) {
-                const member = allMembers[index];
-                
-                if (member.id) {
-                    await FirebaseDB.deleteMember(member.id);
-                }
-                
-                await loadDashboard();
-                alert('✅ Tesserato eliminato!');
+            .header-btn {
+                min-width: 60px;
+                padding: 0.4rem 0.6rem;
             }
-        }
 
-        function handleCSV(input) {
-            const file = input.files[0];
-            if (!file) return;
+            .header-btn-text {
+                font-size: 0.6rem;
+            }
 
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                const csv = e.target.result;
-                const lines = csv.split('\n');
-                
-                let imported = 0;
-                
-                if (lines.length < 2) {
-                    alert('File CSV vuoto o non valido');
-                    return;
-                }
-                
-                // Debug: mostra la prima riga per vedere i campi disponibili
-                console.log('📊 Header CSV:', lines[0]);
-                console.log('📊 Primo dato:', lines[1]);
-                
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
-                    
-                    const fields = line.split(';').map(s => s.trim());
-                    
-                    if (fields.length >= 15) {
-                        const associazione = fields[0];          // Colonna 0: Associazione
-                        const cognome = fields[1];               // Colonna 1: Cognome
-                        const nome = fields[2];                  // Colonna 2: Nome
-                        const codiceFiscale = fields[3];         // Colonna 3: Codice Fiscale
-                        // fields[4] = Data Nascita
-                        // fields[5] = Luogo Nascita  
-                        // fields[6] = Provincia
-                        const dataInserimento = fields[7];       // Colonna 7: Data Inserimento
-                        // fields[8] = Anno Sociale
-                        const numeroTessera = fields[9];         // Colonna 9: Numero Tessera
-                        // fields[10] = Tipo Tessera
-                        // fields[11] = Codice Disciplina
-                        // fields[12] = Descrizione Disciplina
-                        const telefono = fields[13];             // Colonna 13: Telefono
-                        const email = fields[14];                // Colonna 14: Email
-                        
-                        if (nome && cognome && dataInserimento && numeroTessera) {
-                            const exists = allMembers.some(m => m.numeroTessera === numeroTessera);
-                            if (exists) continue;
-                            
-                            let formattedDate = dataInserimento;
-                            if (dataInserimento.includes('/')) {
-                                const [day, month, year] = dataInserimento.split('/');
-                                formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                            }
-                            
-                            const dataScadenza = calculateExpiry(formattedDate);
-                            const cleanPhone = telefono ? telefono.replace(/\D/g, '') : '';
-                            
-                            const member = {
-                                nome,
-                                cognome,
-                                numeroTessera,
-                                dataIscrizione: formattedDate,
-                                dataScadenza: dataScadenza.toISOString(),
-                                email: email || '',
-                                whatsapp: cleanPhone || '',
-                                codiceFiscale: codiceFiscale || '',
-                                status: 'attivo',
-                                associazione: associazione || ''
-                            };
-                            
-                            await FirebaseDB.saveMember(member);
-                            imported++;
-                        }
-                    }
-                }
-                
-                await loadDashboard();
-                alert(`Importati ${imported} tesserati dal CSV CSEN!`);
-                input.value = '';
-            };
-            reader.readAsText(file);
-        }
+            .brand-info {
+                align-items: flex-start;
+            }
 
-        function showExpirationPopup(member, daysLeft) {
-            if (document.querySelector('.popup-overlay')) return;
-            
-            const overlay = document.createElement('div');
-            overlay.className = 'popup-overlay';
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.8);
-                display: flex;
+            .brand-name {
+                font-size: 1.1rem;
+            }
+
+            .brand-subtitle {
+                font-size: 0.8rem;
+            }
+
+            .brand-address {
+                font-size: 0.65rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .member-actions {
                 justify-content: center;
-                align-items: center;
-                z-index: 2000;
-                animation: fadeIn 0.3s ease;
-            `;
-            
-            const isExpired = daysLeft <= 0;
-            const title = isExpired ? '🚨 TESSERA SCADUTA!' : '⚠️ SCADENZA IMMINENTE!';
-            const message = isExpired 
-                ? `La tessera di ${member.nome} ${member.cognome} è SCADUTA`
-                : `La tessera di ${member.nome} ${member.cognome} scade tra ${daysLeft} giorni`;
-            
-            overlay.innerHTML = `
-                <div style="
-                    background: var(--card-bg);
-                    padding: 2rem;
-                    border-radius: 15px;
-                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-                    max-width: 400px;
-                    width: 90%;
-                    text-align: center;
-                    animation: slideIn 0.3s ease;
-                ">
-                    <h3 style="color: ${isExpired ? '#f44336' : '#ff9800'}; margin: 0 0 1rem 0; font-size: 1.5rem;">${title}</h3>
-                    <p style="margin: 0.5rem 0;"><strong>${member.nome} ${member.cognome}</strong></p>
-                    <p style="margin: 0.5rem 0;">Tessera: ${member.numeroTessera}</p>
-                    <p style="margin: 0.5rem 0;">Scadenza: ${formatDate(member.dataScadenza)}</p>
-                    <p style="margin: 1rem 0; font-weight: bold;">${message}</p>
-                    <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem; flex-wrap: wrap;">
-                        <button onclick="closePopup(); sendAlert(${member.index})" style="background: #ff9800; color: white; padding: 0.8rem 1.2rem; border: none; border-radius: 8px; cursor: pointer;">📩 Promemoria</button>
-                        <button onclick="closePopup(); renewMember(${member.index})" style="background: #25D366; color: white; padding: 0.8rem 1.2rem; border: none; border-radius: 8px; cursor: pointer;">🔄 Rinnova</button>
-                        <button onclick="closePopup()" style="background: #ccc; color: #333; padding: 0.8rem 1.2rem; border: none; border-radius: 8px; cursor: pointer;">⏰ Dopo</button>
-                    </div>
+            }
+
+            .floating-menu {
+                bottom: 1rem;
+                right: 1rem;
+            }
+
+            .fab {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+            }
+
+            .logo {
+                width: 100px;
+                height: 45px;
+            }
+
+            .legend-icons {
+                gap: 1rem;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <header>
+        <div class="header-brand">
+            <div class="logo"></div>
+            <div class="brand-info">
+                <div class="brand-name">TRIBÙ Personal Training ASD</div>
+                <div class="brand-subtitle">Alert Scadenze</div>
+                <div class="brand-address">Via Albere 27/B - 37138 Verona</div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="header-btn" onclick="document.getElementById('csvFile').click()" title="Importa CSV">
+                <div class="header-btn-icon">📥</div>
+                <div class="header-btn-text">Import CSV</div>
+            </button>
+            <button class="header-btn" onclick="openModal('memberModal')" title="Aggiungi nuovo tesserato">
+                <div class="header-btn-icon">➕</div>
+                <div class="header-btn-text">Nuovo Tesserato</div>
+            </button>
+            <button class="header-btn" onclick="toggleTheme()" title="Cambia tema">
+                <div class="header-btn-icon">🌙</div>
+                <div class="header-btn-text">Tema</div>
+            </button>
+        </div>
+        <!-- Input CSV nascosto -->
+        <input type="file" id="csvFile" accept=".csv" onchange="handleCSV(this)" style="display: none;">
+    </header>
+    
+    <main>
+        <!-- Stato notifiche -->
+        <div id="notificationStatus" class="notification-status notification-disabled">
+            🔔 <span id="notificationText">Clicca per abilitare notifiche browser</span>
+            <button onclick="requestNotifications()" style="margin-left: 1rem; padding: 0.3rem 0.8rem; background: rgba(255,255,255,0.3); border: none; border-radius: 4px; color: inherit; cursor: pointer;">Abilita</button>
+        </div>
+
+        <!-- Statistiche rapide -->
+        <div class="quick-stats">
+            <div class="stats-grid">
+                <div class="stat-item clickable" onclick="openModal('allMembersModal')" title="Clicca per vedere tutti i tesserati">
+                    <div class="stat-number" id="totalMembers">0</div>
+                    <div class="stat-label">Totali</div>
                 </div>
-            `;
-            
-            document.body.appendChild(overlay);
-            
-            const lastShown = JSON.parse(localStorage.getItem('popupShown') || '{}');
-            lastShown[member.numeroTessera] = new Date().toDateString();
-            localStorage.setItem('popupShown', JSON.stringify(lastShown));
-        }
+                <div class="stat-item">
+                    <div class="stat-number" id="expiredCount">0</div>
+                    <div class="stat-label">Scaduti</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="expiringCount">0</div>
+                    <div class="stat-label">In Scadenza</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="activeCount">0</div>
+                    <div class="stat-label">Attivi</div>
+                </div>
+            </div>
+        </div>
 
-        function closePopup() {
-            const overlay = document.querySelector('.popup-overlay');
-            if (overlay) {
-                overlay.remove();
-            }
-        }
+        <!-- Legenda Icone -->
+        <div class="legend">
+            <h3 style="margin: 0 0 0.5rem 0; color: var(--primary); font-size: 1rem;">📖 Legenda Icone</h3>
+            <div class="legend-icons">
+                <span class="legend-icon">📧 Email</span>
+                <span class="legend-icon">📱 WhatsApp</span>
+                <span class="legend-icon">🆔 Codice Fiscale</span>
+                <span class="legend-icon">📩 Promemoria</span>
+                <span class="legend-icon">🔄 Rinnova</span>
+                <span class="legend-icon">✏️ Modifica</span>
+                <span class="legend-icon">🗑️ Elimina</span>
+            </div>
+        </div>
 
-        function checkExpirations() {
-            const lastShown = JSON.parse(localStorage.getItem('popupShown') || '{}');
-            const lastNotified = JSON.parse(localStorage.getItem('lastNotified') || '{}');
-            const today = new Date().toDateString();
-            
-            allMembers.forEach((member, index) => {
-                const daysLeft = getDaysLeft(member.dataScadenza);
-                
-                if ((daysLeft <= 7 || daysLeft <= 0) && lastShown[member.numeroTessera] !== today) {
-                    setTimeout(() => {
-                        showExpirationPopup({...member, index}, daysLeft);
-                    }, 2000);
-                    return;
-                }
-                
-                if (Notification.permission === 'granted') {
-                    const shouldNotify = (daysLeft === 7 || daysLeft === 3 || daysLeft === 1 || daysLeft <= 0) && 
-                                       lastNotified[member.numeroTessera] !== today;
-                    
-                    if (shouldNotify) {
-                        sendBrowserNotification({...member, index}, daysLeft);
-                        
-                        lastNotified[member.numeroTessera] = today;
-                        localStorage.setItem('lastNotified', JSON.stringify(lastNotified));
-                    }
-                }
-            });
-        }
+        <!-- Ricerca e Filtri -->
+        <div class="search-filters">
+            <div class="search-bar">
+                <input type="text" class="search-input" id="searchInput" placeholder="🔍 Cerca per nome, cognome o numero tessera..." onkeyup="applyFilters()">
+            </div>
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label style="font-size: 0.9rem; margin: 0;">Mese scadenza:</label>
+                    <select class="filter-select" id="monthFilter" onchange="applyFilters()">
+                        <option value="">Tutti i mesi</option>
+                        <option value="01">Gennaio</option>
+                        <option value="02">Febbraio</option>
+                        <option value="03">Marzo</option>
+                        <option value="04">Aprile</option>
+                        <option value="05">Maggio</option>
+                        <option value="06">Giugno</option>
+                        <option value="07">Luglio</option>
+                        <option value="08">Agosto</option>
+                        <option value="09">Settembre</option>
+                        <option value="10">Ottobre</option>
+                        <option value="11">Novembre</option>
+                        <option value="12">Dicembre</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label style="font-size: 0.9rem; margin: 0;">Stato:</label>
+                    <select class="filter-select" id="statusFilter" onchange="applyFilters()">
+                        <option value="">Tutti</option>
+                        <option value="expired">Solo Scaduti</option>
+                        <option value="expiring">Solo In Scadenza</option>
+                        <option value="active">Solo Attivi</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label style="font-size: 0.9rem; margin: 0;">Ordina per:</label>
+                    <select class="filter-select" id="sortFilter" onchange="applyFilters()">
+                        <option value="expiry_asc">Scadenza (prima i più urgenti)</option>
+                        <option value="expiry_desc">Scadenza (prima i meno urgenti)</option>
+                        <option value="name_asc">Nome A-Z</option>
+                        <option value="name_desc">Nome Z-A</option>
+                        <option value="tessera_asc">Numero Tessera</option>
+                    </select>
+                </div>
+                <button class="clear-filters" onclick="clearAllFilters()">🗑️ Pulisci Filtri</button>
+            </div>
+        </div>
 
-        function toggleTheme() {
-            document.body.classList.toggle("dark");
-            const current = document.body.classList.contains("dark") ? "dark" : "light";
-            localStorage.setItem("theme", current);
-        }
+        <!-- Dashboard principale -->
+        <div class="dashboard" id="mainDashboard">
+            <!-- Tesserati Scaduti -->
+            <div class="urgent-section">
+                <div class="section-header">
+                    <h2>❌ Tesserati Scaduti</h2>
+                    <span class="count-badge" id="expiredBadge">0</span>
+                </div>
+                <div id="expiredList">
+                    <div class="empty-state">✅ Nessun tesserato scaduto</div>
+                </div>
+            </div>
 
-        window.onclick = function(event) {
-            const modals = document.querySelectorAll('.modal');
-            modals.forEach(modal => {
-                if (event.target === modal) {
-                    modal.style.display = 'none';
-                }
-            });
-        }
+            <!-- Tesserati in Scadenza -->
+            <div class="expiring-section">
+                <div class="section-header">
+                    <h2>⚠️ In Scadenza (15gg)</h2>
+                    <span class="count-badge" id="expiringBadge">0</span>
+                </div>
+                <div id="expiringList">
+                    <div class="empty-state">✅ Nessuna scadenza imminente</div>
+                </div>
+            </div>
+        </div>
 
-        window.onload = async () => {
-            const savedTheme = localStorage.getItem("theme");
-            if (savedTheme === "dark") {
-                document.body.classList.add("dark");
-            }
+        <!-- Risultati ricerca (nascosto inizialmente) -->
+        <div id="searchResults" style="display: none;">
+            <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                <h2>🔍 Risultati Ricerca</h2>
+                <div id="searchResultsList"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Nuovo Tesserato -->
+    <div id="memberModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('memberModal')">&times;</span>
+            <h2 id="modalTitle">➕ Nuovo Tesserato</h2>
             
-            updateNotificationStatus();
+            <label for="nome">Nome *</label>
+            <input type="text" id="nome" placeholder="Mario">
             
-            const hasMigrated = await migrateLocalDataToFirebase();
+            <label for="cognome">Cognome *</label>
+            <input type="text" id="cognome" placeholder="Rossi">
             
-            await loadDashboard();
+            <label for="numeroTessera">Numero Tessera *</label>
+            <input type="text" id="numeroTessera" placeholder="T001">
             
-            setTimeout(checkExpirations, 1000);
+            <label for="dataIscrizione">Data Iscrizione *</label>
+            <input type="date" id="dataIscrizione">
             
-            setInterval(checkExpirations, 10 * 60 * 1000);
+            <label for="email">Email</label>
+            <input type="email" id="email" placeholder="mario.rossi@email.com">
             
-            console.log('✅ App caricata con Firebase!');
-        };
-    </script>
-</body>
-</html>
+            <label for="whatsapp">WhatsApp</label>
+            <input type="text" id="whatsapp" placeholder="393331234567">
+            
+            <label for="codiceFiscale">Codice Fiscale</label>
+            <input type="text" id="codiceFiscale" placeholder="RSSMRA80A01H501Z" style="text-transform: uppercase;">
+            
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <button onclick="saveMember()">💾 Salva</button>
+                <button onclick="clearForm()" class="secondary">🗑️ Pulisci</button>
+                <button onclick="closeModal('memberModal')" class="secondary">❌ Annulla</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Lista Completa -->
+    <div id="allMembersModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close" onclick="closeModal('allMembersModal')">&times;</span>
+            <h2>👥 Tutti i Tesserati</h2>
+            <div id="allMembersList"></div>
+            <div style="text-align: center; margin-top: 1rem;">
+                <button onclick="closeModal('allMembersModal')" class="secondary">❌ Chiudi</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURAZIONE FIREBASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyC-s8VuHiNx2mnWvUynFa7eYj4r9LHC5LQ",
+            authDomain: "reminderpush.firebaseapp.com",
+            projectId: "reminderpush",
+            storageBucket: "reminderpush.firebasestorage.app",
+            messagingSenderId: "533477700960",
+            appId: "1:533477700960:web:94d90a7e327ec2912d1a05",
+            measure
