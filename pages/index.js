@@ -1,59 +1,91 @@
 // pages/index.js
 import { useEffect, useState } from 'react';
-import Papa from 'papaparse';
+
+const AIRTABLE_BASE_ID = 'app8BEPDrxSMTXVhW';
+const AIRTABLE_TABLE_NAME = 'clienti';
+const AIRTABLE_API_KEY = 'patyZTFa2Qxx0oFuL.39ac674a3b71b740ed22a48b1934a3dd33aaf0cd11b0d7e0254e7638f370a52e';
+
+const airtableEndpoint = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_NAME}`;
 
 export default function Home() {
   const [clienti, setClienti] = useState([]);
-  const [messaggio, setMessaggio] = useState('Ciao! Ricordati di ordinare i tuoi pasti questa settimana 😊');
+  const [form, setForm] = useState({ Nome: '', Telefono: '', GiornoInvio: '', OrarioInvio: '', TipoMessaggio: '' });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch('/clienti_reminderpush.csv')
-      .then(response => response.text())
-      .then(csvText => {
-        Papa.parse(csvText, {
-          header: true,
-          complete: (results) => setClienti(results.data)
-        });
-      });
+    fetch(airtableEndpoint, {
+      headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` },
+    })
+      .then(res => res.json())
+      .then(data => setClienti(data.records || []));
   }, []);
 
-  const generaLinkWA = (numero, nome) => {
-    const testo = encodeURIComponent(messaggio.replace('{nome}', nome));
-    return `https://wa.me/39${numero}?text=${testo}`;
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleAdd = async () => {
+    setLoading(true);
+    await fetch(airtableEndpoint, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        fields: form
+      })
+    });
+    setForm({ Nome: '', Telefono: '', GiornoInvio: '', OrarioInvio: '', TipoMessaggio: '' });
+    window.location.reload();
+  };
+
+  const handleDelete = async (id) => {
+    await fetch(`${airtableEndpoint}/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+      }
+    });
+    window.location.reload();
   };
 
   return (
     <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      <h1>📲 ReminderPush Dashboard</h1>
-      <textarea
-        value={messaggio}
-        onChange={(e) => setMessaggio(e.target.value)}
-        rows={4}
-        style={{ width: '100%', margin: '1rem 0', fontSize: '1rem' }}
-      />
+      <h1>📲 ReminderPush – Gestione Clienti</h1>
+
+      <div style={{ marginBottom: '1.5rem' }}>
+        <input name="Nome" placeholder="Nome" value={form.Nome} onChange={handleChange} />
+        <input name="Telefono" placeholder="Telefono" value={form.Telefono} onChange={handleChange} />
+        <input name="GiornoInvio" placeholder="Giorno Invio" value={form.GiornoInvio} onChange={handleChange} />
+        <input name="OrarioInvio" placeholder="Orario Invio" value={form.OrarioInvio} onChange={handleChange} />
+        <input name="TipoMessaggio" placeholder="Tipo Messaggio" value={form.TipoMessaggio} onChange={handleChange} />
+        <button onClick={handleAdd} disabled={loading}>
+          {loading ? 'Aggiungendo...' : '➕ Aggiungi Cliente'}
+        </button>
+      </div>
+
       <table border="1" cellPadding="10" style={{ width: '100%' }}>
         <thead>
           <tr>
             <th>Nome</th>
             <th>Telefono</th>
+            <th>Giorno Invio</th>
+            <th>Orario Invio</th>
             <th>Tipo Messaggio</th>
-            <th>Invia</th>
+            <th>Azioni</th>
           </tr>
         </thead>
         <tbody>
-          {clienti.map((cliente, i) => (
-            <tr key={i}>
-              <td>{cliente.Nome}</td>
-              <td>{cliente.Telefono}</td>
-              <td>{cliente.TipoMessaggio}</td>
+          {clienti.map((record) => (
+            <tr key={record.id}>
+              <td>{record.fields.Nome}</td>
+              <td>{record.fields.Telefono}</td>
+              <td>{record.fields.GiornoInvio}</td>
+              <td>{record.fields.OrarioInvio}</td>
+              <td>{record.fields.TipoMessaggio}</td>
               <td>
-                <a
-                  href={generaLinkWA(cliente.Telefono, cliente.Nome)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  📤 Invia
-                </a>
+                <button onClick={() => handleDelete(record.id)}>🗑️ Elimina</button>
               </td>
             </tr>
           ))}
@@ -61,7 +93,4 @@ export default function Home() {
       </table>
     </div>
   );
-} 
-
-// public/clienti_reminderpush.csv
-// (Da caricare nella cartella pubblica per leggere i dati CSV dalla webapp)
+}
