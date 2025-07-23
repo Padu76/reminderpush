@@ -14,6 +14,7 @@ export default function Home() {
   const [error, setError] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editingData, setEditingData] = useState({});
+  const [motivationalLinks, setMotivationalLinks] = useState({});
 
   useEffect(() => {
     fetch(airtableEndpoint, {
@@ -88,6 +89,12 @@ export default function Home() {
     window.location.reload();
   };
 
+  const generaMessaggio = (nome, telefono) => {
+    const testo = `Ciao ${nome}, ricordati che ogni giorno è buono per dare il massimo 💪🔥`;
+    const link = `https://wa.me/39${telefono}?text=${encodeURIComponent(testo)}`;
+    setMotivationalLinks(prev => ({ ...prev, [telefono]: link }));
+  };
+
   return (
     <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
       <h1>📲 ReminderPush – Gestione Clienti</h1>
@@ -143,6 +150,14 @@ export default function Home() {
                       setEditingData({ ...editingData, [record.id]: record.fields });
                     }}>✏️ Modifica</button>
                     <button onClick={() => handleDelete(record.id)}>🗑️ Elimina</button>
+                    <button onClick={() => generaMessaggio(record.fields.Nome, record.fields.Telefono)}>🎯 Motivazione</button>
+                    {motivationalLinks[record.fields.Telefono] && (
+                      <a
+                        href={motivationalLinks[record.fields.Telefono]}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >📤 Invia</a>
+                    )}
                   </td>
                 </>
               )}
