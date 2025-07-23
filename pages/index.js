@@ -16,6 +16,7 @@ export default function Home() {
   const [editingData, setEditingData] = useState({});
   const [motivationalLinks, setMotivationalLinks] = useState({});
   const [showOnlyToday, setShowOnlyToday] = useState(false);
+  const [filtroTipo, setFiltroTipo] = useState('');
 
   useEffect(() => {
     fetch(airtableEndpoint, {
@@ -169,16 +170,16 @@ export default function Home() {
     setMotivationalLinks(prev => ({ ...prev, [telefono]: link }));
   };
 
-  const clientiFiltrati = showOnlyToday
-    ? clienti.filter(c => {
-        const giornoOggi = getTodayWeekday();
-        const ultimoInvio = c.fields.UltimoInvio || '';
-        return (
-          c.fields.GiornoInvio?.toLowerCase() === giornoOggi &&
-          ultimoInvio !== getTodayDateString()
-        );
-      })
-    : clienti;
+  const clientiFiltrati = clienti.filter(c => {
+    const giornoOggi = getTodayWeekday();
+    const ultimoInvio = c.fields.UltimoInvio || '';
+    const passaGiorno = !showOnlyToday || (
+      c.fields.GiornoInvio?.toLowerCase() === giornoOggi &&
+      ultimoInvio !== getTodayDateString()
+    );
+    const passaFiltroTipo = !filtroTipo || c.fields.TipoMessaggio?.toLowerCase().includes(filtroTipo.toLowerCase());
+    return passaGiorno && passaFiltroTipo;
+  });
 
   return (
     <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
@@ -197,6 +198,11 @@ export default function Home() {
           {showOnlyToday ? '📋 Mostra Tutti' : '🔁 Reminder Giornalieri'}
         </button>
         <button onClick={handleExportToday}>📤 Esporta Messaggi Oggi</button>
+        <select onChange={e => setFiltroTipo(e.target.value)} value={filtroTipo}>
+          <option value="">🎯 Tutti i Tipi</option>
+          <option value="ordine">📦 Ordine Pasti</option>
+          <option value="allenamento">🏋️ Allenamento</option>
+        </select>
         {error && <p style={{ color: 'red' }}>❌ Errore: {error}</p>}
       </div>
 
