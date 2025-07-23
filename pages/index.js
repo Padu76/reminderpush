@@ -72,6 +72,21 @@ export default function Home() {
     }
   };
 
+  const handleDeleteCliente = async (id) => {
+    if (!window.confirm("Vuoi davvero eliminare questo cliente?")) return;
+    try {
+      await fetch(`${airtableEndpoint}/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+        },
+      });
+      setClienti(prev => prev.filter(c => c.id !== id));
+    } catch (err) {
+      alert("Errore durante l'eliminazione.");
+    }
+  };
+
   const handleReminderAuto = () => {
     const oggi = new Date().toLocaleDateString('it-IT', { weekday: 'long' }).toLowerCase();
     const clientiOggi = clienti.filter(c => (c.fields.GiornoInvio || '').toLowerCase() === oggi);
@@ -157,6 +172,7 @@ export default function Home() {
                   }));
                 }}>🧠 Genera AI</button>
                 <button onClick={() => startEdit(cliente)} style={{ marginLeft: '0.5rem' }}>✏️ Modifica</button>
+                <button onClick={() => handleDeleteCliente(cliente.id)} style={{ marginLeft: '0.5rem', color: 'red' }}>🗑️ Elimina</button>
               </td>
               <td>{messaggiAI[cliente.id]}</td>
               <td>
