@@ -17,6 +17,7 @@ export default function Home() {
   const [motivationalLinks, setMotivationalLinks] = useState({});
   const [showOnlyToday, setShowOnlyToday] = useState(false);
   const [filtroTipo, setFiltroTipo] = useState('');
+  const [messaggiAI, setMessaggiAI] = useState({});
 
   useEffect(() => {
     fetch(airtableEndpoint, {
@@ -33,6 +34,24 @@ export default function Home() {
 
   const getTodayDateString = () => {
     return new Date().toISOString().split('T')[0];
+  };
+
+  const generaMessaggioAI = (cliente) => {
+    let prompt = '';
+    const tipo = cliente.fields.TipoMessaggio?.toLowerCase() || '';
+
+    if (tipo.includes('allenamento')) {
+      prompt = 'Scrivi un messaggio motivazionale breve per spronare una persona ad allenarsi oggi.';
+    } else if (tipo.includes('ordine')) {
+      prompt = 'Ricorda in modo gentile e diretto al cliente di effettuare oggi l\'ordine dei pasti.';
+    } else if (tipo.includes('appuntamento')) {
+      prompt = 'Invia un promemoria per ricordare un appuntamento fissato, con tono cordiale.';
+    } else {
+      prompt = 'Scrivi un messaggio motivazionale generico per iniziare bene la giornata.';
+    }
+
+    const messaggio = `👋 Ciao ${cliente.fields.Nome || 'amico'}! ${prompt}`;
+    setMessaggiAI(prev => ({ ...prev, [cliente.id]: messaggio }));
   };
 
   const clientiFiltrati = clienti.filter(c => {
@@ -65,7 +84,34 @@ export default function Home() {
         👥 Totali: <strong>{totaleClienti}</strong> – 📬 Da inviare oggi: <strong>{daContattareOggi}</strong> – ✅ Già inviati: <strong>{giaContattatiOggi}</strong> {filtroTipo && <>– 🎯 Tipo selezionato: <strong>{filtroTipo}</strong></>}
       </div>
 
-      {/* Il resto dell'interfaccia rimane invariato */}
+      <table border="1" cellPadding="8" style={{ borderCollapse: 'collapse', width: '100%' }}>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Telefono</th>
+            <th>Giorno</th>
+            <th>Orario</th>
+            <th>Tipo Messaggio</th>
+            <th>Azioni</th>
+            <th>Messaggio AI</th>
+          </tr>
+        </thead>
+        <tbody>
+          {clientiFiltrati.map(cliente => (
+            <tr key={cliente.id}>
+              <td>{cliente.fields.Nome}</td>
+              <td>{cliente.fields.Telefono}</td>
+              <td>{cliente.fields.GiornoInvio}</td>
+              <td>{cliente.fields.OrarioInvio}</td>
+              <td>{cliente.fields.TipoMessaggio}</td>
+              <td>
+                <button onClick={() => generaMessaggioAI(cliente)}>🧠 Genera AI</button>
+              </td>
+              <td>{messaggiAI[cliente.id]}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
