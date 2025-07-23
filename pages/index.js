@@ -10,6 +10,7 @@ const airtableEndpoint = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRT
 export default function Home() {
   const [clienti, setClienti] = useState([]);
   const [form, setForm] = useState({ Nome: '', Telefono: '', GiornoInvio: '', OrarioInvio: '', TipoMessaggio: '' });
+  const [editingId, setEditingId] = useState(null);
   const [messaggiAI, setMessaggiAI] = useState({});
   const [storicoMessaggi, setStoricoMessaggi] = useState({});
 
@@ -48,6 +49,29 @@ export default function Home() {
     }
   };
 
+  const handleUpdateCliente = async (id) => {
+    try {
+      const response = await fetch(`${airtableEndpoint}/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+        },
+        body: JSON.stringify({ fields: form }),
+      });
+      const data = await response.json();
+      if (data.id) {
+        setClienti(prev => prev.map(c => (c.id === id ? data : c)));
+        setEditingId(null);
+        setForm({ Nome: '', Telefono: '', GiornoInvio: '', OrarioInvio: '', TipoMessaggio: '' });
+      } else {
+        alert("Errore: aggiornamento fallito.");
+      }
+    } catch (err) {
+      alert("Errore nell'aggiornamento.");
+    }
+  };
+
   const handleReminderAuto = () => {
     const oggi = new Date().toLocaleDateString('it-IT', { weekday: 'long' }).toLowerCase();
     const clientiOggi = clienti.filter(c => (c.fields.GiornoInvio || '').toLowerCase() === oggi);
@@ -67,6 +91,17 @@ export default function Home() {
     });
   };
 
+  const startEdit = (cliente) => {
+    setEditingId(cliente.id);
+    setForm({
+      Nome: cliente.fields.Nome || '',
+      Telefono: cliente.fields.Telefono || '',
+      GiornoInvio: cliente.fields.GiornoInvio || '',
+      OrarioInvio: cliente.fields.OrarioInvio || '',
+      TipoMessaggio: cliente.fields.TipoMessaggio || '',
+    });
+  };
+
   return (
     <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
       <h1>📲 ReminderPush – Gestione Clienti</h1>
@@ -77,7 +112,11 @@ export default function Home() {
         <input name="GiornoInvio" placeholder="Giorno Invio" value={form.GiornoInvio} onChange={handleFormChange} style={{ marginRight: '0.5rem' }} />
         <input name="OrarioInvio" placeholder="Orario Invio" value={form.OrarioInvio} onChange={handleFormChange} style={{ marginRight: '0.5rem' }} />
         <input name="TipoMessaggio" placeholder="Tipo Messaggio" value={form.TipoMessaggio} onChange={handleFormChange} style={{ marginRight: '0.5rem' }} />
-        <button onClick={handleAddCliente}>➕ Aggiungi Cliente</button>
+        {editingId ? (
+          <button onClick={() => handleUpdateCliente(editingId)}>💾 Salva Modifiche</button>
+        ) : (
+          <button onClick={handleAddCliente}>➕ Aggiungi Cliente</button>
+        )}
       </div>
 
       <button onClick={handleReminderAuto} style={{ marginBottom: '1rem', backgroundColor: 'green', color: 'white', padding: '0.5rem 1rem' }}>
@@ -117,6 +156,7 @@ export default function Home() {
                     ]
                   }));
                 }}>🧠 Genera AI</button>
+                <button onClick={() => startEdit(cliente)} style={{ marginLeft: '0.5rem' }}>✏️ Modifica</button>
               </td>
               <td>{messaggiAI[cliente.id]}</td>
               <td>
