@@ -48,6 +48,25 @@ export default function Home() {
     }
   };
 
+  const handleReminderAuto = () => {
+    const oggi = new Date().toLocaleDateString('it-IT', { weekday: 'long' }).toLowerCase();
+    const clientiOggi = clienti.filter(c => (c.fields.GiornoInvio || '').toLowerCase() === oggi);
+    clientiOggi.forEach(cliente => {
+      const messaggio = generaMessaggioAI(cliente);
+      const telefono = cliente.fields.Telefono.replace(/[^0-9]/g, '');
+      const link = `https://wa.me/39${telefono}?text=${encodeURIComponent(messaggio)}`;
+      window.open(link, '_blank');
+      setStoricoMessaggi(prev => ({
+        ...prev,
+        [cliente.id]: [
+          ...(prev[cliente.id] || []),
+          { timestamp: new Date().toLocaleString(), testo: messaggio }
+        ]
+      }));
+      setMessaggiAI(prev => ({ ...prev, [cliente.id]: messaggio }));
+    });
+  };
+
   return (
     <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
       <h1>📲 ReminderPush – Gestione Clienti</h1>
@@ -60,6 +79,10 @@ export default function Home() {
         <input name="TipoMessaggio" placeholder="Tipo Messaggio" value={form.TipoMessaggio} onChange={handleFormChange} style={{ marginRight: '0.5rem' }} />
         <button onClick={handleAddCliente}>➕ Aggiungi Cliente</button>
       </div>
+
+      <button onClick={handleReminderAuto} style={{ marginBottom: '1rem', backgroundColor: 'green', color: 'white', padding: '0.5rem 1rem' }}>
+        🚀 Invia Reminder Automatici
+      </button>
 
       <table border="1" cellPadding="8" style={{ borderCollapse: 'collapse', width: '100%' }}>
         <thead>
@@ -83,7 +106,17 @@ export default function Home() {
               <td>{cliente.fields.OrarioInvio}</td>
               <td>{cliente.fields.TipoMessaggio}</td>
               <td>
-                <button onClick={() => generaMessaggioAI(cliente)}>🧠 Genera AI</button>
+                <button onClick={() => {
+                  const messaggio = generaMessaggioAI(cliente);
+                  setMessaggiAI(prev => ({ ...prev, [cliente.id]: messaggio }));
+                  setStoricoMessaggi(prev => ({
+                    ...prev,
+                    [cliente.id]: [
+                      ...(prev[cliente.id] || []),
+                      { timestamp: new Date().toLocaleString(), testo: messaggio }
+                    ]
+                  }));
+                }}>🧠 Genera AI</button>
               </td>
               <td>{messaggiAI[cliente.id]}</td>
               <td>
@@ -115,8 +148,5 @@ function generaMessaggioAI(cliente) {
     prompt = 'Scrivi un messaggio motivazionale generico per iniziare bene la giornata.';
   }
 
-  const messaggio = `👋 Ciao ${cliente.fields.Nome || 'amico'}! ${prompt}`;
-  const now = new Date().toLocaleString();
-
-  return messaggio;
+  return `👋 Ciao ${cliente.fields.Nome || 'amico'}! ${prompt}`;
 }
