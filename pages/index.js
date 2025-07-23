@@ -15,6 +15,7 @@ export default function Home() {
   const [editingId, setEditingId] = useState(null);
   const [editingData, setEditingData] = useState({});
   const [motivationalLinks, setMotivationalLinks] = useState({});
+  const [showOnlyToday, setShowOnlyToday] = useState(false);
 
   useEffect(() => {
     fetch(airtableEndpoint, {
@@ -23,6 +24,15 @@ export default function Home() {
       .then(res => res.json())
       .then(data => setClienti(data.records || []));
   }, []);
+
+  const getTodayWeekday = () => {
+    const giorni = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'];
+    return giorni[new Date().getDay()];
+  };
+
+  const getTodayDateString = () => {
+    return new Date().toISOString().split('T')[0];
+  };
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -67,9 +77,7 @@ export default function Home() {
   const handleDelete = async (id) => {
     await fetch(`${airtableEndpoint}/${id}`, {
       method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-      }
+      headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` },
     });
     window.location.reload();
   };
@@ -86,6 +94,19 @@ export default function Home() {
       body: JSON.stringify({ fields: data })
     });
     setEditingId(null);
+    window.location.reload();
+  };
+
+  const handleMarkAsSent = async (id) => {
+    const today = getTodayDateString();
+    await fetch(`${airtableEndpoint}/${id}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ fields: { UltimoInvio: today } })
+    });
     window.location.reload();
   };
 
@@ -110,6 +131,17 @@ export default function Home() {
     setMotivationalLinks(prev => ({ ...prev, [telefono]: link }));
   };
 
+  const clientiFiltrati = showOnlyToday
+    ? clienti.filter(c => {
+        const giornoOggi = getTodayWeekday();
+        const ultimoInvio = c.fields.UltimoInvio || '';
+        return (
+          c.fields.GiornoInvio?.toLowerCase() === giornoOggi &&
+          ultimoInvio !== getTodayDateString()
+        );
+      })
+    : clienti;
+
   return (
     <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
       <h1>📲 ReminderPush – Gestione Clienti</h1>
@@ -123,6 +155,9 @@ export default function Home() {
         <button onClick={handleAdd} disabled={loading}>
           {loading ? 'Aggiungendo...' : '➕ Aggiungi Cliente'}
         </button>
+        <button onClick={() => setShowOnlyToday(!showOnlyToday)}>
+          {showOnlyToday ? '📋 Mostra Tutti' : '🔁 Reminder Giornalieri'}
+        </button>
         {error && <p style={{ color: 'red' }}>❌ Errore: {error}</p>}
       </div>
 
@@ -134,11 +169,12 @@ export default function Home() {
             <th>Giorno Invio</th>
             <th>Orario Invio</th>
             <th>Tipo Messaggio</th>
+            <th>Ultimo Invio</th>
             <th>Azioni</th>
           </tr>
         </thead>
         <tbody>
-          {clienti.map((record) => (
+          {clientiFiltrati.map((record) => (
             <tr key={record.id}>
               {editingId === record.id ? (
                 <>
@@ -147,6 +183,7 @@ export default function Home() {
                   <td><input name="GiornoInvio" value={editingData[record.id]?.GiornoInvio || ''} onChange={(e) => handleEditChange(e, record.id)} /></td>
                   <td><input name="OrarioInvio" value={editingData[record.id]?.OrarioInvio || ''} onChange={(e) => handleEditChange(e, record.id)} /></td>
                   <td><input name="TipoMessaggio" value={editingData[record.id]?.TipoMessaggio || ''} onChange={(e) => handleEditChange(e, record.id)} /></td>
+                  <td>-</td>
                   <td>
                     <button onClick={() => handleSave(record.id)}>💾 Salva</button>
                     <button onClick={() => setEditingId(null)}>❌ Annulla</button>
@@ -159,6 +196,7 @@ export default function Home() {
                   <td>{record.fields.GiornoInvio}</td>
                   <td>{record.fields.OrarioInvio}</td>
                   <td>{record.fields.TipoMessaggio}</td>
+                  <td>{record.fields.UltimoInvio || '-'}</td>
                   <td>
                     <button onClick={() => {
                       setEditingId(record.id);
@@ -178,6 +216,7 @@ export default function Home() {
                         rel="noopener noreferrer"
                       >📤 Invia</a>
                     )}
+                    <button onClick={() => handleMarkAsSent(record.id)}>✅ Segna Inviato</button>
                   </td>
                 </>
               )}
