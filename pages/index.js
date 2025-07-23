@@ -34,6 +34,44 @@ export default function Home() {
     return new Date().toISOString().split('T')[0];
   };
 
+  const handleExportToday = () => {
+    const headers = ['Nome', 'Telefono', 'Messaggio'];
+    const rows = clientiFiltrati.map(c => {
+      const nome = c.fields.Nome || '';
+      const telefono = c.fields.Telefono || '';
+      let testo = `Ciao ${nome}! `;
+
+      const giorno = c.fields.GiornoInvio || '';
+      const tipo = c.fields.TipoMessaggio || '';
+
+      if (giorno.toLowerCase() === 'lunedì') {
+        testo += 'Nuova settimana, nuova carica 💥 Dai il meglio!';
+      } else if (giorno.toLowerCase() === 'venerdì') {
+        testo += 'Ultimo sforzo, chiudi la settimana alla grande 🔥';
+      } else {
+        testo += 'Continua così, ogni giorno è un passo avanti 💪';
+      }
+
+      if (tipo.toLowerCase().includes('allenamento')) {
+        testo += ' Ricorda il tuo obiettivo: costanza e concentrazione!';
+      } else if (tipo.toLowerCase().includes('ordine')) {
+        testo += ' Ehi, ricordati di fare l\'ordine dei tuoi pasti 💚';
+      }
+
+      return [nome, telefono, testo];
+    });
+
+    const csvContent = [headers, ...rows].map(e => e.map(cell => `"${cell}"`).join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'reminder_oggi.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -158,6 +196,7 @@ export default function Home() {
         <button onClick={() => setShowOnlyToday(!showOnlyToday)}>
           {showOnlyToday ? '📋 Mostra Tutti' : '🔁 Reminder Giornalieri'}
         </button>
+        <button onClick={handleExportToday}>📤 Esporta Messaggi Oggi</button>
         {error && <p style={{ color: 'red' }}>❌ Errore: {error}</p>}
       </div>
 
