@@ -12,6 +12,8 @@ export default function Home() {
   const [form, setForm] = useState({ Nome: '', Telefono: '', GiornoInvio: '', OrarioInvio: '', TipoMessaggio: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editingData, setEditingData] = useState({});
 
   useEffect(() => {
     fetch(airtableEndpoint, {
@@ -23,6 +25,10 @@ export default function Home() {
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleEditChange = (e, id) => {
+    setEditingData({ ...editingData, [id]: { ...editingData[id], [e.target.name]: e.target.value } });
   };
 
   const handleAdd = async () => {
@@ -67,6 +73,21 @@ export default function Home() {
     window.location.reload();
   };
 
+  const handleSave = async (id) => {
+    const data = editingData[id];
+    if (!data) return;
+    await fetch(`${airtableEndpoint}/${id}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ fields: data })
+    });
+    setEditingId(null);
+    window.location.reload();
+  };
+
   return (
     <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
       <h1>📲 ReminderPush – Gestione Clienti</h1>
@@ -97,14 +118,34 @@ export default function Home() {
         <tbody>
           {clienti.map((record) => (
             <tr key={record.id}>
-              <td>{record.fields.Nome}</td>
-              <td>{record.fields.Telefono}</td>
-              <td>{record.fields.GiornoInvio}</td>
-              <td>{record.fields.OrarioInvio}</td>
-              <td>{record.fields.TipoMessaggio}</td>
-              <td>
-                <button onClick={() => handleDelete(record.id)}>🗑️ Elimina</button>
-              </td>
+              {editingId === record.id ? (
+                <>
+                  <td><input name="Nome" value={editingData[record.id]?.Nome || ''} onChange={(e) => handleEditChange(e, record.id)} /></td>
+                  <td><input name="Telefono" value={editingData[record.id]?.Telefono || ''} onChange={(e) => handleEditChange(e, record.id)} /></td>
+                  <td><input name="GiornoInvio" value={editingData[record.id]?.GiornoInvio || ''} onChange={(e) => handleEditChange(e, record.id)} /></td>
+                  <td><input name="OrarioInvio" value={editingData[record.id]?.OrarioInvio || ''} onChange={(e) => handleEditChange(e, record.id)} /></td>
+                  <td><input name="TipoMessaggio" value={editingData[record.id]?.TipoMessaggio || ''} onChange={(e) => handleEditChange(e, record.id)} /></td>
+                  <td>
+                    <button onClick={() => handleSave(record.id)}>💾 Salva</button>
+                    <button onClick={() => setEditingId(null)}>❌ Annulla</button>
+                  </td>
+                </>
+              ) : (
+                <>
+                  <td>{record.fields.Nome}</td>
+                  <td>{record.fields.Telefono}</td>
+                  <td>{record.fields.GiornoInvio}</td>
+                  <td>{record.fields.OrarioInvio}</td>
+                  <td>{record.fields.TipoMessaggio}</td>
+                  <td>
+                    <button onClick={() => {
+                      setEditingId(record.id);
+                      setEditingData({ ...editingData, [record.id]: record.fields });
+                    }}>✏️ Modifica</button>
+                    <button onClick={() => handleDelete(record.id)}>🗑️ Elimina</button>
+                  </td>
+                </>
+              )}
             </tr>
           ))}
         </tbody>
