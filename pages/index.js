@@ -11,6 +11,7 @@ export default function Home() {
   const [clienti, setClienti] = useState([]);
   const [form, setForm] = useState({ Nome: '', Telefono: '', GiornoInvio: '', OrarioInvio: '', TipoMessaggio: '' });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetch(airtableEndpoint, {
@@ -26,18 +27,34 @@ export default function Home() {
 
   const handleAdd = async () => {
     setLoading(true);
-    await fetch(airtableEndpoint, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        fields: form
-      })
-    });
-    setForm({ Nome: '', Telefono: '', GiornoInvio: '', OrarioInvio: '', TipoMessaggio: '' });
-    window.location.reload();
+    setError(null);
+    try {
+      const response = await fetch(airtableEndpoint, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          fields: {
+            ...form,
+            UltimoInvio: null
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error.message || 'Errore generico');
+      }
+
+      setForm({ Nome: '', Telefono: '', GiornoInvio: '', OrarioInvio: '', TipoMessaggio: '' });
+      window.location.reload();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -63,6 +80,7 @@ export default function Home() {
         <button onClick={handleAdd} disabled={loading}>
           {loading ? 'Aggiungendo...' : '➕ Aggiungi Cliente'}
         </button>
+        {error && <p style={{ color: 'red' }}>❌ Errore: {error}</p>}
       </div>
 
       <table border="1" cellPadding="10" style={{ width: '100%' }}>
