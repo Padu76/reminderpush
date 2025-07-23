@@ -89,8 +89,23 @@ export default function Home() {
     window.location.reload();
   };
 
-  const generaMessaggio = (nome, telefono) => {
-    const testo = `Ciao ${nome}, ricordati che ogni giorno è buono per dare il massimo 💪🔥`;
+  const generaMessaggio = (nome, telefono, giorno = '', tipo = '') => {
+    let testo = `Ciao ${nome}! `;
+
+    if (giorno.toLowerCase() === 'lunedì') {
+      testo += 'Nuova settimana, nuova carica 💥 Dai il meglio!';
+    } else if (giorno.toLowerCase() === 'venerdì') {
+      testo += 'Ultimo sforzo, chiudi la settimana alla grande 🔥';
+    } else {
+      testo += 'Continua così, ogni giorno è un passo avanti 💪';
+    }
+
+    if (tipo.toLowerCase().includes('allenamento')) {
+      testo += ' Ricorda il tuo obiettivo: costanza e concentrazione!';
+    } else if (tipo.toLowerCase().includes('ordine')) {
+      testo += ' Ehi, ricordati di fare l\'ordine dei tuoi pasti 💚';
+    }
+
     const link = `https://wa.me/39${telefono}?text=${encodeURIComponent(testo)}`;
     setMotivationalLinks(prev => ({ ...prev, [telefono]: link }));
   };
@@ -150,7 +165,12 @@ export default function Home() {
                       setEditingData({ ...editingData, [record.id]: record.fields });
                     }}>✏️ Modifica</button>
                     <button onClick={() => handleDelete(record.id)}>🗑️ Elimina</button>
-                    <button onClick={() => generaMessaggio(record.fields.Nome, record.fields.Telefono)}>🎯 Motivazione</button>
+                    <button onClick={() => generaMessaggio(
+                      record.fields.Nome,
+                      record.fields.Telefono,
+                      record.fields.GiornoInvio,
+                      record.fields.TipoMessaggio
+                    )}>🎯 Motivazione</button>
                     {motivationalLinks[record.fields.Telefono] && (
                       <a
                         href={motivationalLinks[record.fields.Telefono]}
