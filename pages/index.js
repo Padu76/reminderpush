@@ -18,6 +18,7 @@ export default function Home() {
   const [showOnlyToday, setShowOnlyToday] = useState(false);
   const [filtroTipo, setFiltroTipo] = useState('');
   const [messaggiAI, setMessaggiAI] = useState({});
+  const [storicoMessaggi, setStoricoMessaggi] = useState({});
 
   useEffect(() => {
     fetch(airtableEndpoint, {
@@ -51,7 +52,43 @@ export default function Home() {
     }
 
     const messaggio = `👋 Ciao ${cliente.fields.Nome || 'amico'}! ${prompt}`;
+    const now = new Date().toLocaleString();
     setMessaggiAI(prev => ({ ...prev, [cliente.id]: messaggio }));
+    setStoricoMessaggi(prev => ({
+      ...prev,
+      [cliente.id]: [...(prev[cliente.id] || []), { testo: messaggio, timestamp: now }]
+    }));
+    return messaggio;
+  };
+
+  const inviaReminderAutomatici = async () => {
+    const oggi = getTodayWeekday();
+    const oggiData = getTodayDateString();
+    const daInviare = clienti.filter(c =>
+      c.fields.GiornoInvio?.toLowerCase() === oggi &&
+      c.fields.UltimoInvio !== oggiData
+    );
+
+    for (const cliente of daInviare) {
+      const messaggio = generaMessaggioAI(cliente);
+      const numero = cliente.fields.Telefono?.replace(/[^\d]/g, '');
+      if (numero) {
+        const url = `https://wa.me/${numero}?text=${encodeURIComponent(messaggio)}`;
+        window.open(url, '_blank');
+
+        await fetch(`${airtableEndpoint}/${cliente.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+          },
+          body: JSON.stringify({
+            fields: { UltimoInvio: oggiData },
+          }),
+        });
+      }
+    }
+    alert(`✅ Reminder inviati a ${daInviare.length} clienti.`);
   };
 
   const clientiFiltrati = clienti.filter(c => {
@@ -84,6 +121,10 @@ export default function Home() {
         👥 Totali: <strong>{totaleClienti}</strong> – 📬 Da inviare oggi: <strong>{daContattareOggi}</strong> – ✅ Già inviati: <strong>{giaContattatiOggi}</strong> {filtroTipo && <>– 🎯 Tipo selezionato: <strong>{filtroTipo}</strong></>}
       </div>
 
+      <button onClick={inviaReminderAutomatici} style={{ marginBottom: '1rem', padding: '0.5rem 1rem', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '5px' }}>
+        📤 Invia Reminder Automatici
+      </button>
+
       <table border="1" cellPadding="8" style={{ borderCollapse: 'collapse', width: '100%' }}>
         <thead>
           <tr>
@@ -94,6 +135,7 @@ export default function Home() {
             <th>Tipo Messaggio</th>
             <th>Azioni</th>
             <th>Messaggio AI</th>
+            <th>Storico</th>
           </tr>
         </thead>
         <tbody>
@@ -108,6 +150,13 @@ export default function Home() {
                 <button onClick={() => generaMessaggioAI(cliente)}>🧠 Genera AI</button>
               </td>
               <td>{messaggiAI[cliente.id]}</td>
+              <td>
+                {(storicoMessaggi[cliente.id] || []).map((m, i) => (
+                  <div key={i} style={{ marginBottom: '4px', fontSize: '0.8rem' }}>
+                    🕒 {m.timestamp}<br />📨 {m.testo}
+                  </div>
+                ))}
+              </td>
             </tr>
           ))}
         </tbody>
