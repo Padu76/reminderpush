@@ -42,6 +42,21 @@ export default function Home() {
     }
   };
 
+  const handleReminderAuto = () => {
+    const aggiornati = {};
+    const storico = {};
+    clienti.forEach(cliente => {
+      const messaggio = generaMessaggioAI(cliente);
+      aggiornati[cliente.id] = messaggio;
+      storico[cliente.id] = [
+        ...(storicoMessaggi[cliente.id] || []),
+        { timestamp: new Date().toLocaleString(), testo: messaggio }
+      ];
+    });
+    setMessaggiAI(aggiornati);
+    setStoricoMessaggi(storico);
+  };
+
   const clientiFiltrati = filtroGiorno ? clienti.filter(c => (c.fields.GiornoInvio || '').toLowerCase() === filtroGiorno.toLowerCase()) : clienti;
 
   return (
