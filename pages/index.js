@@ -28,6 +28,33 @@ export default function Home() {
       .then(data => setClienti(data.records || []));
   }, []);
 
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddCliente = async () => {
+    try {
+      const response = await fetch(airtableEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+        },
+        body: JSON.stringify({ fields: form }),
+      });
+      const data = await response.json();
+      if (data.id) {
+        setClienti(prev => [...prev, data]);
+        setForm({ Nome: '', Telefono: '', GiornoInvio: '', OrarioInvio: '', TipoMessaggio: '' });
+      } else {
+        alert('Errore: controlla che tutti i campi siano corretti.');
+      }
+    } catch (err) {
+      alert('Errore nell'inserimento.');
+    }
+  };
+
   const getTodayWeekday = () => {
     const giorni = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'];
     return giorni[new Date().getDay()];
@@ -91,6 +118,26 @@ export default function Home() {
     alert(`✅ Reminder inviati a ${daInviare.length} clienti.`);
   };
 
+  const copiaLinkWA = () => {
+    const oggi = getTodayWeekday();
+    const oggiData = getTodayDateString();
+    const daInviare = clienti.filter(c =>
+      c.fields.GiornoInvio?.toLowerCase() === oggi &&
+      c.fields.UltimoInvio !== oggiData
+    );
+
+    const righe = daInviare.map(cliente => {
+      const messaggio = messaggiAI[cliente.id] || generaMessaggioAI(cliente);
+      const numero = cliente.fields.Telefono?.replace(/[^\d]/g, '');
+      if (!numero) return null;
+      return `https://wa.me/${numero}?text=${encodeURIComponent(messaggio)}`;
+    }).filter(Boolean);
+
+    const testoFinale = righe.join('\n');
+    navigator.clipboard.writeText(testoFinale);
+    alert('✅ Link WhatsApp copiati negli appunti!');
+  };
+
   const clientiFiltrati = clienti.filter(c => {
     const giornoOggi = getTodayWeekday();
     const ultimoInvio = c.fields.UltimoInvio || '';
@@ -121,8 +168,34 @@ export default function Home() {
         👥 Totali: <strong>{totaleClienti}</strong> – 📬 Da inviare oggi: <strong>{daContattareOggi}</strong> – ✅ Già inviati: <strong>{giaContattatiOggi}</strong> {filtroTipo && <>– 🎯 Tipo selezionato: <strong>{filtroTipo}</strong></>}
       </div>
 
-      <button onClick={inviaReminderAutomatici} style={{ marginBottom: '1rem', padding: '0.5rem 1rem', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '5px' }}>
+      <div style={{ marginBottom: '1rem' }}>
+        <input name="Nome" placeholder="Nome" value={form.Nome} onChange={handleFormChange} style={{ marginRight: '0.5rem' }} />
+        <input name="Telefono" placeholder="Telefono" value={form.Telefono} onChange={handleFormChange} style={{ marginRight: '0.5rem' }} />
+        <input name="GiornoInvio" placeholder="Giorno Invio" value={form.GiornoInvio} onChange={handleFormChange} style={{ marginRight: '0.5rem' }} />
+        <input name="OrarioInvio" placeholder="Orario Invio" value={form.OrarioInvio} onChange={handleFormChange} style={{ marginRight: '0.5rem' }} />
+        <input name="TipoMessaggio" placeholder="Tipo Messaggio" value={form.TipoMessaggio} onChange={handleFormChange} style={{ marginRight: '0.5rem' }} />
+        <button onClick={handleAddCliente}>➕ Aggiungi Cliente</button>
+      </div>
+
+      <div style={{ marginBottom: '1rem' }}>
+        <label>
+          <input type="checkbox" checked={showOnlyToday} onChange={() => setShowOnlyToday(!showOnlyToday)} style={{ marginRight: '0.5rem' }} />
+          Mostra solo clienti da contattare oggi
+        </label>
+        <input
+          placeholder="Filtra per tipo messaggio"
+          value={filtroTipo}
+          onChange={e => setFiltroTipo(e.target.value)}
+          style={{ marginLeft: '1rem' }}
+        />
+      </div>
+
+      <button onClick={inviaReminderAutomatici} style={{ marginRight: '1rem', marginBottom: '1rem', padding: '0.5rem 1rem', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '5px' }}>
         📤 Invia Reminder Automatici
+      </button>
+
+      <button onClick={copiaLinkWA} style={{ marginBottom: '1rem', padding: '0.5rem 1rem', backgroundColor: '#2196F3', color: 'white', border: 'none', borderRadius: '5px' }}>
+        🗌 Copia lista invii WhatsApp
       </button>
 
       <table border="1" cellPadding="8" style={{ borderCollapse: 'collapse', width: '100%' }}>
