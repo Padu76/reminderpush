@@ -13,6 +13,7 @@ export default function Home() {
   const [editingId, setEditingId] = useState(null);
   const [messaggiAI, setMessaggiAI] = useState({});
   const [storicoMessaggi, setStoricoMessaggi] = useState({});
+  const [filtroGiorno, setFiltroGiorno] = useState('');
 
   useEffect(() => {
     fetch(airtableEndpoint, {
@@ -87,6 +88,14 @@ export default function Home() {
     }
   };
 
+  const handleReminderManuale = (clienteId) => {
+    const messaggio = messaggiAI[clienteId];
+    const cliente = clienti.find(c => c.id === clienteId);
+    const telefono = cliente.fields.Telefono.replace(/[^0-9]/g, '');
+    const link = `https://wa.me/39${telefono}?text=${encodeURIComponent(messaggio)}`;
+    window.open(link, '_blank');
+  };
+
   const handleReminderAuto = () => {
     const oggi = new Date().toLocaleDateString('it-IT', { weekday: 'long' }).toLowerCase();
     const clientiOggi = clienti.filter(c => (c.fields.GiornoInvio || '').toLowerCase() === oggi);
@@ -117,42 +126,58 @@ export default function Home() {
     });
   };
 
-  return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      <h1>📲 ReminderPush – Gestione Clienti</h1>
+  const clientiFiltrati = filtroGiorno ? clienti.filter(c => (c.fields.GiornoInvio || '').toLowerCase() === filtroGiorno.toLowerCase()) : clienti;
 
-      <div style={{ marginBottom: '1rem' }}>
+  return (
+    <div style={{ padding: '2rem', fontFamily: 'Arial, sans-serif', backgroundColor: '#f4f9ff' }}>
+      <h1 style={{ color: '#2c3e50' }}>📲 ReminderPush – Gestione Clienti</h1>
+
+      <div style={{ backgroundColor: '#fff', padding: '1rem', borderRadius: '10px', boxShadow: '0 0 10px #ccc', marginBottom: '1rem' }}>
         <input name="Nome" placeholder="Nome" value={form.Nome} onChange={handleFormChange} style={{ marginRight: '0.5rem' }} />
         <input name="Telefono" placeholder="Telefono" value={form.Telefono} onChange={handleFormChange} style={{ marginRight: '0.5rem' }} />
         <input name="GiornoInvio" placeholder="Giorno Invio" value={form.GiornoInvio} onChange={handleFormChange} style={{ marginRight: '0.5rem' }} />
         <input name="OrarioInvio" placeholder="Orario Invio" value={form.OrarioInvio} onChange={handleFormChange} style={{ marginRight: '0.5rem' }} />
         <input name="TipoMessaggio" placeholder="Tipo Messaggio" value={form.TipoMessaggio} onChange={handleFormChange} style={{ marginRight: '0.5rem' }} />
         {editingId ? (
-          <button onClick={() => handleUpdateCliente(editingId)}>💾 Salva Modifiche</button>
+          <button onClick={() => handleUpdateCliente(editingId)} style={{ backgroundColor: '#3498db', color: 'white' }}>💾 Salva</button>
         ) : (
-          <button onClick={handleAddCliente}>➕ Aggiungi Cliente</button>
+          <button onClick={handleAddCliente} style={{ backgroundColor: '#2ecc71', color: 'white' }}>➕ Aggiungi</button>
         )}
       </div>
 
-      <button onClick={handleReminderAuto} style={{ marginBottom: '1rem', backgroundColor: 'green', color: 'white', padding: '0.5rem 1rem' }}>
+      <div style={{ marginBottom: '1rem' }}>
+        <label style={{ marginRight: '0.5rem' }}>📅 Filtro giorno:</label>
+        <select onChange={(e) => setFiltroGiorno(e.target.value)} value={filtroGiorno}>
+          <option value="">Tutti</option>
+          <option value="Lunedì">Lunedì</option>
+          <option value="Martedì">Martedì</option>
+          <option value="Mercoledì">Mercoledì</option>
+          <option value="Giovedì">Giovedì</option>
+          <option value="Venerdì">Venerdì</option>
+          <option value="Sabato">Sabato</option>
+          <option value="Domenica">Domenica</option>
+        </select>
+      </div>
+
+      <button onClick={handleReminderAuto} style={{ marginBottom: '1rem', backgroundColor: '#e67e22', color: 'white', padding: '0.5rem 1rem', borderRadius: '5px' }}>
         🚀 Invia Reminder Automatici
       </button>
 
-      <table border="1" cellPadding="8" style={{ borderCollapse: 'collapse', width: '100%' }}>
-        <thead>
+      <table border="1" cellPadding="8" style={{ borderCollapse: 'collapse', width: '100%', backgroundColor: '#fff', borderRadius: '10px' }}>
+        <thead style={{ backgroundColor: '#3498db', color: 'white' }}>
           <tr>
             <th>Nome</th>
             <th>Telefono</th>
             <th>Giorno</th>
             <th>Orario</th>
-            <th>Tipo Messaggio</th>
+            <th>Tipo</th>
             <th>Azioni</th>
-            <th>Messaggio AI</th>
+            <th>Messaggio</th>
             <th>Storico</th>
           </tr>
         </thead>
         <tbody>
-          {clienti.map(cliente => (
+          {clientiFiltrati.map(cliente => (
             <tr key={cliente.id}>
               <td>{cliente.fields.Nome}</td>
               <td>{cliente.fields.Telefono}</td>
@@ -170,14 +195,15 @@ export default function Home() {
                       { timestamp: new Date().toLocaleString(), testo: messaggio }
                     ]
                   }));
-                }}>🧠 Genera AI</button>
-                <button onClick={() => startEdit(cliente)} style={{ marginLeft: '0.5rem' }}>✏️ Modifica</button>
-                <button onClick={() => handleDeleteCliente(cliente.id)} style={{ marginLeft: '0.5rem', color: 'red' }}>🗑️ Elimina</button>
+                }}>🧠</button>
+                <button onClick={() => handleReminderManuale(cliente.id)}>📤</button>
+                <button onClick={() => startEdit(cliente)}>✏️</button>
+                <button onClick={() => handleDeleteCliente(cliente.id)} style={{ color: 'red' }}>🗑️</button>
               </td>
               <td>{messaggiAI[cliente.id]}</td>
-              <td>
+              <td style={{ fontSize: '0.8rem' }}>
                 {(storicoMessaggi[cliente.id] || []).map((m, i) => (
-                  <div key={i} style={{ marginBottom: '4px', fontSize: '0.8rem' }}>
+                  <div key={i} style={{ marginBottom: '4px' }}>
                     🕒 {m.timestamp}<br />📨 {m.testo}
                   </div>
                 ))}
