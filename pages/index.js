@@ -9,14 +9,17 @@ const airtableEndpoint = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRT
 
 export default function Home() {
   const [clienti, setClienti] = useState([]);
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [form, setForm] = useState({ Nome: '', Telefono: '', GiornoInvio: '', OrarioInvio: '', TipoMessaggio: '' });
-  const [editingId, setEditingId] = useState(null);
+  const [testForm, setTestForm] = useState({ nome: '', telefono: '', messaggio: '' });
   const [messaggiAI, setMessaggiAI] = useState({});
   const [storicoMessaggi, setStoricoMessaggi] = useState({});
   const [filtroGiorno, setFiltroGiorno] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [inviando, setInviando] = useState({});
   const [statusInvii, setStatusInvii] = useState({});
-  const [showTwilioInfo, setShowTwilioInfo] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   const giorniSettimana = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"];
   const tipiMessaggio = ["Ordine Settimanale", "Messaggio Motivazionale", "Promemoria Appuntamento"];
@@ -28,6 +31,72 @@ export default function Home() {
       .then(res => res.json())
       .then(data => setClienti(data.records || []));
   }, []);
+
+  const handleAddCliente = async (e) => {
+    e.preventDefault();
+    if (!form.Nome || !form.Telefono) {
+      alert('Nome e telefono sono obbligatori!');
+      return;
+    }
+
+    try {
+      const response = await fetch(airtableEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+        },
+        body: JSON.stringify({ fields: form }),
+      });
+      const data = await response.json();
+      if (data.id) {
+        setClienti(prev => [...prev, data]);
+        setForm({ Nome: '', Telefono: '', GiornoInvio: '', OrarioInvio: '', TipoMessaggio: '' });
+        setShowAddForm(false);
+        alert('Cliente aggiunto con successo!');
+      }
+    } catch (err) {
+      alert("Errore nell'aggiunta del cliente.");
+    }
+  };
+
+  const handleTestMessage = async (e) => {
+    e.preventDefault();
+    if (!testForm.nome || !testForm.telefono || !testForm.messaggio) {
+      alert('Tutti i campi sono obbligatori per il test!');
+      return;
+    }
+
+    setInviando(prev => ({ ...prev, test: true }));
+
+    try {
+      const response = await fetch('/api/send-whatsapp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: testForm.telefono,
+          message: testForm.messaggio,
+          clienteNome: testForm.nome
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert(`✅ Messaggio di test inviato con successo!\nStatus: ${result.status}`);
+        setTestForm({ nome: '', telefono: '', messaggio: '' });
+      } else {
+        alert(`❌ Errore nell'invio: ${result.details || result.error}`);
+      }
+
+    } catch (error) {
+      alert(`❌ Errore: ${error.message}`);
+    }
+
+    setInviando(prev => ({ ...prev, test: false }));
+  };
 
   const handleUpdateInline = async (id, field, value) => {
     try {
@@ -44,7 +113,7 @@ export default function Home() {
         setClienti(prev => prev.map(c => (c.id === id ? data : c)));
       }
     } catch (err) {
-      alert("Errore nell'aggiornamento inline.");
+      alert("Errore nell'aggiornamento.");
     }
   };
 
@@ -56,6 +125,7 @@ export default function Home() {
           headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
         });
         setClienti(prev => prev.filter(c => c.id !== id));
+        alert('Cliente eliminato!');
       } catch (err) {
         alert("Errore nell'eliminazione del cliente.");
       }
@@ -76,7 +146,7 @@ export default function Home() {
     }
 
     setInviando(prev => ({ ...prev, [clienteId]: true }));
-    setStatusInvii(prev => ({ ...prev, [clienteId]: 'Invio WhatsApp in corso...' }));
+    setStatusInvii(prev => ({ ...prev, [clienteId]: 'Invio in corso...' }));
 
     try {
       const response = await fetch('/api/send-whatsapp', {
@@ -96,10 +166,9 @@ export default function Home() {
       if (response.ok) {
         setStatusInvii(prev => ({ 
           ...prev, 
-          [clienteId]: `✅ WhatsApp inviato alle ${new Date().toLocaleTimeString()} - Status: ${result.status}` 
+          [clienteId]: `✅ Inviato alle ${new Date().toLocaleTimeString()}` 
         }));
         
-        // Aggiorna storico messaggi
         setStoricoMessaggi(prev => ({
           ...prev,
           [clienteId]: [
@@ -107,27 +176,25 @@ export default function Home() {
             { 
               timestamp: new Date().toLocaleString(), 
               testo: messaggio,
-              tipo: 'WhatsApp Twilio',
-              status: result.status,
-              messageId: result.messageId
+              tipo: 'WhatsApp',
+              status: result.status
             }
           ]
         }));
 
-        // Aggiorna ultimo invio in Airtable
         await handleUpdateInline(clienteId, 'UltimoInvio', new Date().toISOString());
 
       } else {
         setStatusInvii(prev => ({ 
           ...prev, 
-          [clienteId]: `❌ Errore: ${result.details || result.error}` 
+          [clienteId]: `❌ ${result.details || result.error}` 
         }));
       }
 
     } catch (error) {
       setStatusInvii(prev => ({ 
         ...prev, 
-        [clienteId]: `❌ Errore: ${error.message}` 
+        [clienteId]: `❌ ${error.message}` 
       }));
     }
 
@@ -135,6 +202,8 @@ export default function Home() {
   };
 
   const handleReminderAuto = async () => {
+    if (!confirm('Vuoi inviare tutti i reminder programmati per questo momento?')) return;
+
     try {
       const response = await fetch('/api/schedule-reminders', {
         method: 'POST',
@@ -146,204 +215,497 @@ export default function Home() {
       const result = await response.json();
 
       if (result.success) {
-        alert(`✅ Reminder WhatsApp inviati: ${result.messaggiInviati}\n❌ Errori: ${result.errori}\n⏰ Controllo: ${result.checkTime}`);
-        
-        // Aggiorna lo storico per i clienti che hanno ricevuto messaggi
-        if (result.dettagli && result.dettagli.inviati) {
-          const nuovoStorico = { ...storicoMessaggi };
-          
-          result.dettagli.inviati.forEach(invio => {
-            const cliente = clienti.find(c => c.fields.Nome === invio.cliente);
-            if (cliente) {
-              nuovoStorico[cliente.id] = [
-                ...(nuovoStorico[cliente.id] || []),
-                {
-                  timestamp: new Date(invio.timestamp).toLocaleString(),
-                  testo: invio.messaggio,
-                  tipo: 'WhatsApp Auto',
-                  status: invio.status,
-                  messageId: invio.messageId
-                }
-              ];
-            }
-          });
-          
-          setStoricoMessaggi(nuovoStorico);
-        }
+        alert(`✅ Reminder inviati: ${result.messaggiInviati}\n❌ Errori: ${result.errori}`);
       }
 
     } catch (error) {
-      alert(`Errore durante l'invio dei reminder: ${error.message}`);
+      alert(`Errore: ${error.message}`);
     }
   };
 
-  const clientiFiltrati = filtroGiorno ? clienti.filter(c => (c.fields.GiornoInvio || '').toLowerCase() === filtroGiorno.toLowerCase()) : clienti;
+  const clientiFiltrati = clienti.filter(cliente => {
+    const matchDay = !filtroGiorno || (cliente.fields.GiornoInvio || '').toLowerCase() === filtroGiorno.toLowerCase();
+    const matchSearch = !searchTerm || 
+      (cliente.fields.Nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (cliente.fields.Telefono || '').includes(searchTerm);
+    return matchDay && matchSearch;
+  });
+
+  const stats = {
+    totale: clienti.length,
+    oggi: clienti.filter(c => {
+      const oggi = new Date().toLocaleDateString('it-IT', { weekday: 'long' });
+      return (c.fields.GiornoInvio || '').toLowerCase() === oggi.toLowerCase();
+    }).length,
+    attivi: clienti.filter(c => c.fields.GiornoInvio && c.fields.OrarioInvio).length
+  };
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'Arial, sans-serif', backgroundColor: '#eef7fb' }}>
-      <h1 style={{ color: '#2c3e50' }}>📲 ReminderPush – WhatsApp con Twilio</h1>
-
-      <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-        <div>
-          <label style={{ marginRight: '0.5rem' }}>📅 Filtro giorno:</label>
-          <select onChange={(e) => setFiltroGiorno(e.target.value)} value={filtroGiorno}>
-            <option value="">Tutti</option>
-            {giorniSettimana.map(g => (
-              <option key={g} value={g}>{g}</option>
-            ))}
-          </select>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      {/* Header */}
+      <header style={{ backgroundColor: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '1rem 2rem' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h1 style={{ color: '#1f2937', fontSize: '1.5rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            📲 ReminderPush
+          </h1>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: activeTab === 'dashboard' ? '#3b82f6' : 'transparent',
+                color: activeTab === 'dashboard' ? 'white' : '#6b7280',
+                border: 'none',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              📊 Dashboard
+            </button>
+            <button
+              onClick={() => setActiveTab('clienti')}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: activeTab === 'clienti' ? '#3b82f6' : 'transparent',
+                color: activeTab === 'clienti' ? 'white' : '#6b7280',
+                border: 'none',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              👥 Clienti
+            </button>
+            <button
+              onClick={() => setActiveTab('test')}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: activeTab === 'test' ? '#3b82f6' : 'transparent',
+                color: activeTab === 'test' ? 'white' : '#6b7280',
+                border: 'none',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              🧪 Test
+            </button>
+          </div>
         </div>
+      </header>
 
-        <button 
-          onClick={handleReminderAuto} 
-          style={{ 
-            backgroundColor: '#25D366', 
-            color: 'white', 
-            padding: '0.7rem 1.5rem', 
-            borderRadius: '5px', 
-            border: 'none',
-            fontWeight: 'bold'
-          }}
-        >
-          🚀 Invia Reminder Automatici
-        </button>
+      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
+        
+        {/* Dashboard Tab */}
+        {activeTab === 'dashboard' && (
+          <div>
+            <h2 style={{ color: '#1f2937', fontSize: '1.25rem', fontWeight: '600', marginBottom: '1.5rem' }}>Dashboard</h2>
+            
+            {/* Stats Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+              <div style={{ backgroundColor: '#fff', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                <div style={{ fontSize: '2rem', color: '#3b82f6', marginBottom: '0.5rem' }}>{stats.totale}</div>
+                <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>Clienti Totali</div>
+              </div>
+              <div style={{ backgroundColor: '#fff', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                <div style={{ fontSize: '2rem', color: '#10b981', marginBottom: '0.5rem' }}>{stats.oggi}</div>
+                <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>Reminder Oggi</div>
+              </div>
+              <div style={{ backgroundColor: '#fff', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                <div style={{ fontSize: '2rem', color: '#f59e0b', marginBottom: '0.5rem' }}>{stats.attivi}</div>
+                <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>Programmati</div>
+              </div>
+            </div>
 
-        <button 
-          onClick={() => setShowTwilioInfo(!showTwilioInfo)}
-          style={{ 
-            backgroundColor: '#3498db', 
-            color: 'white', 
-            padding: '0.5rem 1rem', 
-            borderRadius: '5px', 
-            border: 'none',
-            fontSize: '0.9rem'
-          }}
-        >
-          ℹ️ Info Twilio
-        </button>
-      </div>
-
-      {showTwilioInfo && (
-        <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#d4edda', borderRadius: '5px', fontSize: '0.9rem' }}>
-          <strong>📱 Configurazione Twilio WhatsApp:</strong>
-          <br />• <strong>Sandbox attiva:</strong> I clienti devono inviare "join [codice]" al numero Twilio per ricevere messaggi
-          <br />• <strong>Numero Twilio:</strong> +19853065498
-          <br />• <strong>Variables d'ambiente:</strong> TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM
-          <br />• <strong>Per produzione:</strong> Verifica business account e numero WhatsApp ufficiale
-        </div>
-      )}
-
-      <table border="1" cellPadding="8" style={{ borderCollapse: 'collapse', width: '100%', backgroundColor: '#fff', borderRadius: '10px' }}>
-        <thead style={{ backgroundColor: '#25D366', color: 'white' }}>
-          <tr>
-            <th>Nome</th>
-            <th>Telefono</th>
-            <th>Giorno</th>
-            <th>Orario</th>
-            <th>Tipo</th>
-            <th>Azioni<br /><small>(🧠AI 📲WA ✏️Mod 🗑️Del)</small></th>
-            <th>Messaggio</th>
-            <th>Status</th>
-            <th>Storico</th>
-          </tr>
-        </thead>
-        <tbody>
-          {clientiFiltrati.map(cliente => (
-            <tr key={cliente.id}>
-              <td>
-                <input 
-                  value={cliente.fields.Nome || ''} 
-                  onChange={(e) => handleUpdateInline(cliente.id, 'Nome', e.target.value)} 
-                  style={{ width: '100%' }} 
-                />
-              </td>
-              <td>
-                <input 
-                  value={cliente.fields.Telefono || ''} 
-                  onChange={(e) => handleUpdateInline(cliente.id, 'Telefono', e.target.value)} 
-                  style={{ width: '100%' }}
-                  placeholder="393123456789"
-                />
-              </td>
-              <td>
-                <select 
-                  value={cliente.fields.GiornoInvio || ''} 
-                  onChange={(e) => handleUpdateInline(cliente.id, 'GiornoInvio', e.target.value)}
+            {/* Action Buttons */}
+            <div style={{ backgroundColor: '#fff', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '2rem' }}>
+              <h3 style={{ color: '#1f2937', fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem' }}>Azioni Rapide</h3>
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                <button
+                  onClick={handleReminderAuto}
+                  style={{
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    padding: '0.75rem 1.5rem',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    fontSize: '1rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
                 >
-                  <option value="">Seleziona</option>
+                  🚀 Invia Reminder Automatici
+                </button>
+                <button
+                  onClick={() => setActiveTab('clienti')}
+                  style={{
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    padding: '0.75rem 1.5rem',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    fontSize: '1rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  👥 Gestisci Clienti
+                </button>
+                <button
+                  onClick={() => setActiveTab('test')}
+                  style={{
+                    backgroundColor: '#8b5cf6',
+                    color: 'white',
+                    padding: '0.75rem 1.5rem',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    fontSize: '1rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  🧪 Testa Messaggio
+                </button>
+              </div>
+            </div>
+
+            {/* Setup Info */}
+            <div style={{ backgroundColor: '#fef3c7', border: '1px solid #fbbf24', padding: '1rem', borderRadius: '0.5rem' }}>
+              <h4 style={{ color: '#92400e', fontWeight: '600', marginBottom: '0.5rem' }}>ℹ️ Setup Twilio WhatsApp</h4>
+              <div style={{ color: '#92400e', fontSize: '0.875rem' }}>
+                • <strong>Numero Twilio:</strong> +19853065498<br />
+                • <strong>Per ricevere messaggi:</strong> Invia "join [codice]" al numero Twilio<br />
+                • <strong>Ambiente:</strong> Sandbox (per test gratuiti)
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Test Tab */}
+        {activeTab === 'test' && (
+          <div>
+            <h2 style={{ color: '#1f2937', fontSize: '1.25rem', fontWeight: '600', marginBottom: '1.5rem' }}>🧪 Test Messaggio WhatsApp</h2>
+            
+            <div style={{ backgroundColor: '#fff', padding: '2rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', maxWidth: '500px' }}>
+              <form onSubmit={handleTestMessage} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', color: '#374151', fontWeight: '500', marginBottom: '0.5rem' }}>
+                    Nome (per personalizzare il messaggio)
+                  </label>
+                  <input
+                    type="text"
+                    value={testForm.nome}
+                    onChange={(e) => setTestForm(prev => ({ ...prev, nome: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem',
+                      fontSize: '1rem'
+                    }}
+                    placeholder="Es: Mario"
+                  />
+                </div>
+                
+                <div>
+                  <label style={{ display: 'block', color: '#374151', fontWeight: '500', marginBottom: '0.5rem' }}>
+                    Numero WhatsApp (con prefisso)
+                  </label>
+                  <input
+                    type="text"
+                    value={testForm.telefono}
+                    onChange={(e) => setTestForm(prev => ({ ...prev, telefono: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem',
+                      fontSize: '1rem'
+                    }}
+                    placeholder="Es: 393123456789"
+                  />
+                </div>
+                
+                <div>
+                  <label style={{ display: 'block', color: '#374151', fontWeight: '500', marginBottom: '0.5rem' }}>
+                    Messaggio
+                  </label>
+                  <textarea
+                    value={testForm.messaggio}
+                    onChange={(e) => setTestForm(prev => ({ ...prev, messaggio: e.target.value }))}
+                    rows={4}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem',
+                      fontSize: '1rem',
+                      resize: 'vertical'
+                    }}
+                    placeholder="Scrivi il tuo messaggio di test..."
+                  />
+                </div>
+                
+                <button
+                  type="submit"
+                  disabled={inviando.test}
+                  style={{
+                    backgroundColor: inviando.test ? '#9ca3af' : '#10b981',
+                    color: 'white',
+                    padding: '0.75rem 1.5rem',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    fontSize: '1rem',
+                    fontWeight: '500',
+                    cursor: inviando.test ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  {inviando.test ? '⏳ Invio in corso...' : '📲 Invia Test WhatsApp'}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Clienti Tab */}
+        {activeTab === 'clienti' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ color: '#1f2937', fontSize: '1.25rem', fontWeight: '600' }}>👥 Gestione Clienti</h2>
+              <button
+                onClick={() => setShowAddForm(!showAddForm)}
+                style={{
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  padding: '0.5rem 1rem',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                ➕ Aggiungi Cliente
+              </button>
+            </div>
+
+            {/* Add Form */}
+            {showAddForm && (
+              <div style={{ backgroundColor: '#fff', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '1.5rem' }}>
+                <h3 style={{ color: '#1f2937', fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem' }}>Nuovo Cliente</h3>
+                <form onSubmit={handleAddCliente} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                  <input
+                    type="text"
+                    placeholder="Nome *"
+                    value={form.Nome}
+                    onChange={(e) => setForm(prev => ({ ...prev, Nome: e.target.value }))}
+                    style={{ padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem' }}
+                    required
+                  />
+                  <input
+                    type="text"
+                    placeholder="Telefono *"
+                    value={form.Telefono}
+                    onChange={(e) => setForm(prev => ({ ...prev, Telefono: e.target.value }))}
+                    style={{ padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem' }}
+                    required
+                  />
+                  <select
+                    value={form.GiornoInvio}
+                    onChange={(e) => setForm(prev => ({ ...prev, GiornoInvio: e.target.value }))}
+                    style={{ padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem' }}
+                  >
+                    <option value="">Seleziona Giorno</option>
+                    {giorniSettimana.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                  <input
+                    type="time"
+                    placeholder="Orario"
+                    value={form.OrarioInvio}
+                    onChange={(e) => setForm(prev => ({ ...prev, OrarioInvio: e.target.value }))}
+                    style={{ padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem' }}
+                  />
+                  <select
+                    value={form.TipoMessaggio}
+                    onChange={(e) => setForm(prev => ({ ...prev, TipoMessaggio: e.target.value }))}
+                    style={{ padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem' }}
+                  >
+                    <option value="">Tipo Messaggio</option>
+                    {tipiMessaggio.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <button
+                    type="submit"
+                    style={{
+                      backgroundColor: '#3b82f6',
+                      color: 'white',
+                      padding: '0.5rem 1rem',
+                      border: 'none',
+                      borderRadius: '0.375rem',
+                      cursor: 'pointer',
+                      fontWeight: '500'
+                    }}
+                  >
+                    Aggiungi
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* Filters */}
+            <div style={{ backgroundColor: '#fff', padding: '1rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <input
+                  type="text"
+                  placeholder="🔍 Cerca per nome o telefono..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{
+                    padding: '0.5rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.375rem',
+                    minWidth: '200px'
+                  }}
+                />
+                <select
+                  value={filtroGiorno}
+                  onChange={(e) => setFiltroGiorno(e.target.value)}
+                  style={{ padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem' }}
+                >
+                  <option value="">📅 Tutti i giorni</option>
                   {giorniSettimana.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
-              </td>
-              <td>
-                <input 
-                  value={cliente.fields.OrarioInvio || ''} 
-                  onChange={(e) => handleUpdateInline(cliente.id, 'OrarioInvio', e.target.value)} 
-                  style={{ width: '100%' }}
-                  placeholder="09:00"
-                />
-              </td>
-              <td>
-                <select 
-                  value={cliente.fields.TipoMessaggio || ''} 
-                  onChange={(e) => handleUpdateInline(cliente.id, 'TipoMessaggio', e.target.value)}
-                >
-                  <option value="">Seleziona</option>
-                  {tipiMessaggio.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </td>
-              <td>
-                <button 
-                  title="Genera AI" 
-                  onClick={() => {
-                    const messaggio = generaMessaggioAI(cliente);
-                    setMessaggiAI(prev => ({ ...prev, [cliente.id]: messaggio }));
-                  }}
-                >
-                  🧠
-                </button>{' '}
-                <button 
-                  title="Invia WhatsApp" 
-                  onClick={() => handleInviaWhatsApp(cliente.id)}
-                  disabled={inviando[cliente.id]}
-                  style={{ 
-                    opacity: inviando[cliente.id] ? 0.5 : 1,
-                    backgroundColor: inviando[cliente.id] ? '#ccc' : '#25D366',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '3px',
-                    padding: '4px 8px'
-                  }}
-                >
-                  {inviando[cliente.id] ? '⏳' : '📲'}
-                </button>{' '}
-                <button title="Modifica" onClick={() => setEditingId(cliente.id)}>✏️</button>{' '}
-                <button title="Elimina" onClick={() => handleDeleteCliente(cliente.id)} style={{ color: 'red' }}>🗑️</button>
-              </td>
-              <td style={{ maxWidth: '200px', wordWrap: 'break-word', fontSize: '0.9rem' }}>
-                {messaggiAI[cliente.id]}
-              </td>
-              <td style={{ fontSize: '0.8rem', color: statusInvii[cliente.id]?.includes('✅') ? 'green' : 'red' }}>
-                {statusInvii[cliente.id] || ''}
-              </td>
-              <td style={{ fontSize: '0.8rem', maxWidth: '250px' }}>
-                {(storicoMessaggi[cliente.id] || []).slice(-3).map((m, i) => (
-                  <div key={i} style={{ marginBottom: '4px', padding: '2px', backgroundColor: '#f8f9fa', borderRadius: '3px' }}>
-                    <div style={{ fontWeight: 'bold' }}>🕒 {m.timestamp}</div>
-                    <div style={{ color: '#666' }}>📱 {m.tipo} - {m.status}</div>
-                    <div>📨 {m.testo.substring(0, 50)}...</div>
-                    {m.messageId && <div style={{ fontSize: '0.7rem', color: '#999' }}>ID: {m.messageId.substring(0, 10)}...</div>}
+                <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+                  {clientiFiltrati.length} di {clienti.length} clienti
+                </div>
+              </div>
+            </div>
+
+            {/* Clients Grid */}
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              {clientiFiltrati.map(cliente => (
+                <div key={cliente.id} style={{ backgroundColor: '#fff', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '0.25rem' }}>{cliente.fields.Nome || 'Senza nome'}</div>
+                      <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>{cliente.fields.Telefono || 'Senza telefono'}</div>
+                    </div>
+                    
+                    <div>
+                      <div style={{ color: '#6b7280', fontSize: '0.75rem' }}>Programmazione</div>
+                      <div style={{ fontSize: '0.875rem' }}>
+                        {cliente.fields.GiornoInvio || 'Non impostato'} {cliente.fields.OrarioInvio && `alle ${cliente.fields.OrarioInvio}`}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <div style={{ color: '#6b7280', fontSize: '0.75rem' }}>Tipo</div>
+                      <div style={{ fontSize: '0.875rem' }}>{cliente.fields.TipoMessaggio || 'Non impostato'}</div>
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <button
+                        onClick={() => {
+                          const messaggio = generaMessaggioAI(cliente);
+                          setMessaggiAI(prev => ({ ...prev, [cliente.id]: messaggio }));
+                        }}
+                        style={{
+                          backgroundColor: '#8b5cf6',
+                          color: 'white',
+                          padding: '0.375rem 0.75rem',
+                          border: 'none',
+                          borderRadius: '0.25rem',
+                          fontSize: '0.75rem',
+                          cursor: 'pointer'
+                        }}
+                        title="Genera messaggio AI"
+                      >
+                        🧠 AI
+                      </button>
+                      
+                      <button
+                        onClick={() => handleInviaWhatsApp(cliente.id)}
+                        disabled={inviando[cliente.id]}
+                        style={{
+                          backgroundColor: inviando[cliente.id] ? '#9ca3af' : '#10b981',
+                          color: 'white',
+                          padding: '0.375rem 0.75rem',
+                          border: 'none',
+                          borderRadius: '0.25rem',
+                          fontSize: '0.75rem',
+                          cursor: inviando[cliente.id] ? 'not-allowed' : 'pointer'
+                        }}
+                        title="Invia WhatsApp"
+                      >
+                        {inviando[cliente.id] ? '⏳' : '📲 Invia'}
+                      </button>
+                      
+                      <button
+                        onClick={() => handleDeleteCliente(cliente.id)}
+                        style={{
+                          backgroundColor: '#ef4444',
+                          color: 'white',
+                          padding: '0.375rem 0.75rem',
+                          border: 'none',
+                          borderRadius: '0.25rem',
+                          fontSize: '0.75rem',
+                          cursor: 'pointer'
+                        }}
+                        title="Elimina cliente"
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </div>
-                ))}
-                {(storicoMessaggi[cliente.id] || []).length > 3 && (
-                  <div style={{ fontSize: '0.7rem', color: '#666' }}>
-                    ... e altri {(storicoMessaggi[cliente.id] || []).length - 3} messaggi
+                  
+                  {messaggiAI[cliente.id] && (
+                    <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#f3f4f6', borderRadius: '0.375rem' }}>
+                      <div style={{ color: '#374151', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem' }}>Messaggio generato:</div>
+                      <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>{messaggiAI[cliente.id]}</div>
+                    </div>
+                  )}
+                  
+                  {statusInvii[cliente.id] && (
+                    <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: statusInvii[cliente.id].includes('✅') ? '#10b981' : '#ef4444' }}>
+                      {statusInvii[cliente.id]}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {clientiFiltrati.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
+                <div>Nessun cliente trovato</div>
+                {searchTerm || filtroGiorno ? (
+                  <div style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>
+                    Prova a modificare i filtri di ricerca
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>
+                    Aggiungi il tuo primo cliente per iniziare
                   </div>
                 )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </div>
+            )}
+          </div>
+        )}
+        
+      </main>
     </div>
   );
 }
@@ -359,9 +721,7 @@ function generaMessaggioAI(cliente) {
       `💪 Ciao ${nome}! Oggi è un giorno perfetto per dare il massimo! Tu puoi farcela! 🚀`,
       `🌟 Buongiorno ${nome}! Ricorda: ogni piccolo passo ti avvicina al tuo obiettivo! 💪`,
       `☀️ Ciao ${nome}! Inizia questa giornata con energia positiva! Sei più forte di quanto pensi! ✨`,
-      `🔥 Hey ${nome}! Oggi è il tuo giorno per brillare! Credi in te stesso! 💫`,
-      `🌈 Ciao ${nome}! Ogni giorno è una nuova opportunità per essere la migliore versione di te! ⭐`,
-      `🎯 Buongiorno ${nome}! Concentrati sui tuoi obiettivi e vedrai che li raggiungerai! 💯`
+      `🔥 Hey ${nome}! Oggi è il tuo giorno per brillare! Credi in te stesso! 💫`
     ];
     return messaggiMotivazionali[Math.floor(Math.random() * messaggiMotivazionali.length)];
   } else if (tipo.includes('appuntamento')) {
