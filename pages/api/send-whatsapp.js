@@ -6,64 +6,72 @@ export default async function handler(req, res) {
 
   const { to, message, clienteNome } = req.body;
 
-  // Variabili d'ambiente necessarie
-  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  // Variabili d'ambiente Twilio
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const fromNumber = process.env.TWILIO_WHATSAPP_FROM;
 
-  if (!accessToken || !phoneNumberId) {
+  if (!accountSid || !authToken || !fromNumber) {
     return res.status(500).json({ 
-      error: 'WhatsApp credentials not configured',
-      details: 'Set WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID in environment variables'
+      error: 'Twilio credentials not configured',
+      details: 'Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_WHATSAPP_FROM in environment variables'
     });
   }
 
   try {
-    // Formatta numero di telefono (rimuovi spazi, trattini, etc.)
-    const formattedPhone = to.replace(/[^\d]/g, '');
+    // Formatta numero di telefono per WhatsApp
+    let formattedPhone = to.replace(/[^\d]/g, '');
     
     // Se non inizia con +39, aggiungilo (per numeri italiani)
-    const finalPhone = formattedPhone.startsWith('39') ? formattedPhone : `39${formattedPhone}`;
+    if (!formattedPhone.startsWith('39')) {
+      formattedPhone = `39${formattedPhone}`;
+    }
+    
+    const whatsappTo = `whatsapp:+${formattedPhone}`;
 
-    const whatsappPayload = {
-      messaging_product: "whatsapp",
-      to: finalPhone,
-      type: "text",
-      text: {
-        body: message
-      }
-    };
+    // Crea le credenziali base64 per l'autenticazione Basic
+    const credentials = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
 
-    const response = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/messages`, {
+    // Prepara i dati per Twilio (URL encoded)
+    const formData = new URLSearchParams();
+    formData.append('From', `whatsapp:${fromNumber}`);
+    formData.append('To', whatsappTo);
+    formData.append('Body', message);
+
+    console.log(`🔄 Invio WhatsApp a ${clienteNome} (${whatsappTo})`);
+
+    const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
+        'Authorization': `Basic ${credentials}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify(whatsappPayload)
+      body: formData.toString()
     });
 
     const data = await response.json();
 
     if (response.ok) {
-      // Log invio nel database o file
-      console.log(`✅ Messaggio inviato a ${clienteNome} (${finalPhone}):`, message);
+      console.log(`✅ Messaggio WhatsApp inviato a ${clienteNome} - SID: ${data.sid}`);
       
       return res.status(200).json({
         success: true,
-        messageId: data.messages[0].id,
-        to: finalPhone,
+        messageId: data.sid,
+        to: whatsappTo,
+        status: data.status,
         timestamp: new Date().toISOString()
       });
     } else {
-      console.error('❌ Errore WhatsApp API:', data);
+      console.error('❌ Errore Twilio API:', data);
       return res.status(400).json({
-        error: 'WhatsApp API error',
-        details: data.error?.message || 'Unknown error'
+        error: 'Twilio API error',
+        details: data.message || 'Unknown error',
+        code: data.code || 'UNKNOWN'
       });
     }
 
   } catch (error) {
-    console.error('❌ Errore invio WhatsApp:', error);
+    console.error('❌ Errore invio WhatsApp Twilio:', error);
     return res.status(500).json({
       error: 'Server error',
       details: error.message
