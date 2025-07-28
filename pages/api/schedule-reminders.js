@@ -18,12 +18,13 @@ export default async function handler(req, res) {
     const airtableData = await airtableResponse.json();
     const clienti = airtableData.records || [];
 
-    // Ottieni giorno e ora attuali
+    // Ottieni giorno e ora attuali (timezone Italia)
     const now = new Date();
-    const currentDay = now.toLocaleDateString('it-IT', { weekday: 'long' });
-    const currentTime = now.toTimeString().slice(0, 5); // HH:MM
+    const italyTime = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Rome"}));
+    const currentDay = italyTime.toLocaleDateString('it-IT', { weekday: 'long' });
+    const currentTime = italyTime.toTimeString().slice(0, 5); // HH:MM
     
-    console.log(`🕐 Controllo reminder per ${currentDay} alle ${currentTime}`);
+    console.log(`🕐 Controllo reminder per ${currentDay} alle ${currentTime} (ora italiana)`);
 
     const messaggiInviati = [];
     const errori = [];
@@ -47,14 +48,14 @@ export default async function handler(req, res) {
       const isRightTime = orarioInvio === currentTime;
 
       if (isRightDay && isRightTime) {
-        console.log(`📅 Invio reminder a ${nome} (${telefono})`);
+        console.log(`📅 Invio reminder WhatsApp a ${nome} (${telefono})`);
 
         // Genera messaggio basato sul tipo
         const messaggio = generaMessaggioPersonalizzato(nome, tipoMessaggio);
 
         try {
-          // Invia messaggio WhatsApp
-          const whatsappResponse = await fetch(`${req.headers.origin || 'http://localhost:3000'}/api/send-whatsapp`, {
+          // Invia messaggio WhatsApp tramite Twilio
+          const whatsappResponse = await fetch(`${req.headers.origin || 'https://reminderpush.vercel.app'}/api/send-whatsapp`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -73,6 +74,7 @@ export default async function handler(req, res) {
               telefono: telefono,
               messaggio: messaggio,
               messageId: result.messageId,
+              status: result.status,
               timestamp: result.timestamp
             });
 
@@ -109,7 +111,7 @@ export default async function handler(req, res) {
       }
     }
 
-    console.log(`✅ Reminder inviati: ${messaggiInviati.length}`);
+    console.log(`✅ Reminder WhatsApp inviati: ${messaggiInviati.length}`);
     console.log(`❌ Errori: ${errori.length}`);
 
     return res.status(200).json({
@@ -120,6 +122,7 @@ export default async function handler(req, res) {
         inviati: messaggiInviati,
         errori: errori
       },
+      checkTime: `${currentDay} ${currentTime}`,
       timestamp: now.toISOString()
     });
 
@@ -142,7 +145,9 @@ function generaMessaggioPersonalizzato(nome, tipoMessaggio) {
       `💪 Ciao ${nome}! Oggi è un giorno perfetto per dare il massimo! Tu puoi farcela! 🚀`,
       `🌟 Buongiorno ${nome}! Ricorda: ogni piccolo passo ti avvicina al tuo obiettivo! 💪`,
       `☀️ Ciao ${nome}! Inizia questa giornata con energia positiva! Sei più forte di quanto pensi! ✨`,
-      `🔥 Hey ${nome}! Oggi è il tuo giorno per brillare! Credi in te stesso! 💫`
+      `🔥 Hey ${nome}! Oggi è il tuo giorno per brillare! Credi in te stesso! 💫`,
+      `🌈 Ciao ${nome}! Ogni giorno è una nuova opportunità per essere la migliore versione di te! ⭐`,
+      `🎯 Buongiorno ${nome}! Concentrati sui tuoi obiettivi e vedrai che li raggiungerai! 💯`
     ];
     return messaggiMotivazionali[Math.floor(Math.random() * messaggiMotivazionali.length)];
   } else if (tipo.includes('appuntamento')) {
