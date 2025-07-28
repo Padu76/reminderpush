@@ -16,6 +16,7 @@ export default function Home() {
   const [filtroGiorno, setFiltroGiorno] = useState('');
   const [inviando, setInviando] = useState({});
   const [statusInvii, setStatusInvii] = useState({});
+  const [showTwilioInfo, setShowTwilioInfo] = useState(false);
 
   const giorniSettimana = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"];
   const tipiMessaggio = ["Ordine Settimanale", "Messaggio Motivazionale", "Promemoria Appuntamento"];
@@ -75,7 +76,7 @@ export default function Home() {
     }
 
     setInviando(prev => ({ ...prev, [clienteId]: true }));
-    setStatusInvii(prev => ({ ...prev, [clienteId]: 'Invio in corso...' }));
+    setStatusInvii(prev => ({ ...prev, [clienteId]: 'Invio WhatsApp in corso...' }));
 
     try {
       const response = await fetch('/api/send-whatsapp', {
@@ -95,7 +96,7 @@ export default function Home() {
       if (response.ok) {
         setStatusInvii(prev => ({ 
           ...prev, 
-          [clienteId]: `✅ Inviato alle ${new Date().toLocaleTimeString()}` 
+          [clienteId]: `✅ WhatsApp inviato alle ${new Date().toLocaleTimeString()} - Status: ${result.status}` 
         }));
         
         // Aggiorna storico messaggi
@@ -106,8 +107,9 @@ export default function Home() {
             { 
               timestamp: new Date().toLocaleString(), 
               testo: messaggio,
-              tipo: 'WhatsApp',
-              status: 'inviato'
+              tipo: 'WhatsApp Twilio',
+              status: result.status,
+              messageId: result.messageId
             }
           ]
         }));
@@ -118,7 +120,7 @@ export default function Home() {
       } else {
         setStatusInvii(prev => ({ 
           ...prev, 
-          [clienteId]: `❌ Errore: ${result.details || 'Errore sconosciuto'}` 
+          [clienteId]: `❌ Errore: ${result.details || result.error}` 
         }));
       }
 
@@ -144,7 +146,7 @@ export default function Home() {
       const result = await response.json();
 
       if (result.success) {
-        alert(`✅ Reminder inviati: ${result.messaggiInviati}\n❌ Errori: ${result.errori}`);
+        alert(`✅ Reminder WhatsApp inviati: ${result.messaggiInviati}\n❌ Errori: ${result.errori}\n⏰ Controllo: ${result.checkTime}`);
         
         // Aggiorna lo storico per i clienti che hanno ricevuto messaggi
         if (result.dettagli && result.dettagli.inviati) {
@@ -159,7 +161,8 @@ export default function Home() {
                   timestamp: new Date(invio.timestamp).toLocaleString(),
                   testo: invio.messaggio,
                   tipo: 'WhatsApp Auto',
-                  status: 'inviato'
+                  status: invio.status,
+                  messageId: invio.messageId
                 }
               ];
             }
@@ -178,9 +181,9 @@ export default function Home() {
 
   return (
     <div style={{ padding: '2rem', fontFamily: 'Arial, sans-serif', backgroundColor: '#eef7fb' }}>
-      <h1 style={{ color: '#2c3e50' }}>📲 ReminderPush – Gestione Clienti WhatsApp</h1>
+      <h1 style={{ color: '#2c3e50' }}>📲 ReminderPush – WhatsApp con Twilio</h1>
 
-      <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+      <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
         <div>
           <label style={{ marginRight: '0.5rem' }}>📅 Filtro giorno:</label>
           <select onChange={(e) => setFiltroGiorno(e.target.value)} value={filtroGiorno}>
@@ -194,7 +197,7 @@ export default function Home() {
         <button 
           onClick={handleReminderAuto} 
           style={{ 
-            backgroundColor: '#2ecc71', 
+            backgroundColor: '#25D366', 
             color: 'white', 
             padding: '0.7rem 1.5rem', 
             borderRadius: '5px', 
@@ -204,23 +207,41 @@ export default function Home() {
         >
           🚀 Invia Reminder Automatici
         </button>
+
+        <button 
+          onClick={() => setShowTwilioInfo(!showTwilioInfo)}
+          style={{ 
+            backgroundColor: '#3498db', 
+            color: 'white', 
+            padding: '0.5rem 1rem', 
+            borderRadius: '5px', 
+            border: 'none',
+            fontSize: '0.9rem'
+          }}
+        >
+          ℹ️ Info Twilio
+        </button>
       </div>
 
-      <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#fff3cd', borderRadius: '5px', fontSize: '0.9rem' }}>
-        <strong>💡 Configurazione WhatsApp:</strong> Assicurati di aver configurato le variabili d'ambiente:
-        <br />• <code>WHATSAPP_ACCESS_TOKEN</code> - Token di accesso Meta
-        <br />• <code>WHATSAPP_PHONE_NUMBER_ID</code> - ID del numero WhatsApp Business
-      </div>
+      {showTwilioInfo && (
+        <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#d4edda', borderRadius: '5px', fontSize: '0.9rem' }}>
+          <strong>📱 Configurazione Twilio WhatsApp:</strong>
+          <br />• <strong>Sandbox attiva:</strong> I clienti devono inviare "join [codice]" al numero Twilio per ricevere messaggi
+          <br />• <strong>Numero Twilio:</strong> +19853065498
+          <br />• <strong>Variables d'ambiente:</strong> TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM
+          <br />• <strong>Per produzione:</strong> Verifica business account e numero WhatsApp ufficiale
+        </div>
+      )}
 
       <table border="1" cellPadding="8" style={{ borderCollapse: 'collapse', width: '100%', backgroundColor: '#fff', borderRadius: '10px' }}>
-        <thead style={{ backgroundColor: '#2980b9', color: 'white' }}>
+        <thead style={{ backgroundColor: '#25D366', color: 'white' }}>
           <tr>
             <th>Nome</th>
             <th>Telefono</th>
             <th>Giorno</th>
             <th>Orario</th>
             <th>Tipo</th>
-            <th>Azioni<br /><small>(🧠AI 📤WA ✏️Mod 🗑️Del)</small></th>
+            <th>Azioni<br /><small>(🧠AI 📲WA ✏️Mod 🗑️Del)</small></th>
             <th>Messaggio</th>
             <th>Status</th>
             <th>Storico</th>
@@ -241,7 +262,7 @@ export default function Home() {
                   value={cliente.fields.Telefono || ''} 
                   onChange={(e) => handleUpdateInline(cliente.id, 'Telefono', e.target.value)} 
                   style={{ width: '100%' }}
-                  placeholder="39123456789"
+                  placeholder="393123456789"
                 />
               </td>
               <td>
@@ -286,10 +307,14 @@ export default function Home() {
                   disabled={inviando[cliente.id]}
                   style={{ 
                     opacity: inviando[cliente.id] ? 0.5 : 1,
-                    backgroundColor: inviando[cliente.id] ? '#ccc' : '#25D366'
+                    backgroundColor: inviando[cliente.id] ? '#ccc' : '#25D366',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '3px',
+                    padding: '4px 8px'
                   }}
                 >
-                  {inviando[cliente.id] ? '⏳' : '📤'}
+                  {inviando[cliente.id] ? '⏳' : '📲'}
                 </button>{' '}
                 <button title="Modifica" onClick={() => setEditingId(cliente.id)}>✏️</button>{' '}
                 <button title="Elimina" onClick={() => handleDeleteCliente(cliente.id)} style={{ color: 'red' }}>🗑️</button>
@@ -306,6 +331,7 @@ export default function Home() {
                     <div style={{ fontWeight: 'bold' }}>🕒 {m.timestamp}</div>
                     <div style={{ color: '#666' }}>📱 {m.tipo} - {m.status}</div>
                     <div>📨 {m.testo.substring(0, 50)}...</div>
+                    {m.messageId && <div style={{ fontSize: '0.7rem', color: '#999' }}>ID: {m.messageId.substring(0, 10)}...</div>}
                   </div>
                 ))}
                 {(storicoMessaggi[cliente.id] || []).length > 3 && (
@@ -333,7 +359,9 @@ function generaMessaggioAI(cliente) {
       `💪 Ciao ${nome}! Oggi è un giorno perfetto per dare il massimo! Tu puoi farcela! 🚀`,
       `🌟 Buongiorno ${nome}! Ricorda: ogni piccolo passo ti avvicina al tuo obiettivo! 💪`,
       `☀️ Ciao ${nome}! Inizia questa giornata con energia positiva! Sei più forte di quanto pensi! ✨`,
-      `🔥 Hey ${nome}! Oggi è il tuo giorno per brillare! Credi in te stesso! 💫`
+      `🔥 Hey ${nome}! Oggi è il tuo giorno per brillare! Credi in te stesso! 💫`,
+      `🌈 Ciao ${nome}! Ogni giorno è una nuova opportunità per essere la migliore versione di te! ⭐`,
+      `🎯 Buongiorno ${nome}! Concentrati sui tuoi obiettivi e vedrai che li raggiungerai! 💯`
     ];
     return messaggiMotivazionali[Math.floor(Math.random() * messaggiMotivazionali.length)];
   } else if (tipo.includes('appuntamento')) {
