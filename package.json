@@ -6,14 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "reminder": "node autoReminder.js"
   },
   "dependencies": {
     "next": "15.4.3",
     "papaparse": "^5.5.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "js-cookie": "^3.0.5"
+    "js-cookie": "^3.0.5",
+    "node-cron": "^3.0.3",
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
     "@types/node": "^20",
